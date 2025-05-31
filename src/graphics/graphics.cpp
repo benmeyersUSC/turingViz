@@ -385,8 +385,11 @@ void drawShapeWithText(Window& window, const std::string& text,
     int centerX, int centerY, int width, int height, 
     bool isSquare, 
     const std::string& fillColor,
+    int txtSize,
     const std::string& borderColor,
     const std::string& textColor) {
+            fl_font(FL_HELVETICA, txtSize); // Set font and size
+
 // Calculate top-left corner from center point
 int x = centerX - width / 2;
 int y = centerY - height / 2;
@@ -481,8 +484,8 @@ window.drawLabel(text, textX, textY);
 //         window.drawLabel(text, textX, textY);
 // }
 
-int widthOfTextBox(const std::string& text, int padding) {
-    fl_font(FL_HELVETICA, 14); // Set font and size
+int widthOfTextBox(const std::string& text, int padding, int txtSize) {
+    fl_font(FL_HELVETICA, txtSize); // Set font and size
     int textWidth = fl_width(text.c_str());
     return textWidth + (padding * 2);
 }
@@ -491,11 +494,12 @@ void drawShapeAroundText(Window& window, const std::string& text,
     int centerX, int centerY, int height,
     const std::string& fillColor,
     int padding,
+    int txtSize,
     bool isSquare,
     const std::string& borderColor,
     const std::string& textColor) {
 
-    fl_font(FL_HELVETICA, 14); // Set font and size
+    fl_font(FL_HELVETICA, txtSize); // Set font and size
     int textWidth = fl_width(text.c_str());
     int width = std::max(textWidth + (padding * 2), 50);
 
@@ -512,8 +516,12 @@ void drawShapeAroundText(Window& window, const std::string& text,
 
     window.setColor(textColor);
     int textX = centerX - textWidth / 2;
-    int textY = centerY + height / 4; // baseline adjustment
+    int textY = centerY + height / 9; // baseline adjustment
     window.drawLabel(text, textX, textY);
 }
+
+
+
+
 
 } // namespace graphics

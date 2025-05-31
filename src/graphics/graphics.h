@@ -167,14 +167,16 @@ void drawShapeWithText(Window& window, const std::string& text,
     int centerX, int centerY, int width, int height, 
     bool isSquare = true, 
     const std::string& fillColor = graphics::WHITE,
+    int txtSize = 14,
     const std::string& borderColor = graphics::BLACK,
     const std::string& textColor = graphics::BLACK);
 
-int widthOfTextBox(const std::string& text, int padding);
+int widthOfTextBox(const std::string& text, int padding, int txtSize = 14);
 
 void drawShapeAroundText(Window& window, const std::string& text,
     int centerX, int centerY, int height, const std::string& fillColor,
     int padding = 0,
+    int txtSize = 14,
     bool isSquare = true,
     const std::string& borderColor = graphics::BLACK,
     const std::string& textColor = graphics::BLACK);

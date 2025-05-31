@@ -632,36 +632,46 @@ class TM{
         cout << "Halting...Steps taken: " << steps << endl;
     }
 
-    void runStepWiseWindow(unsigned pauze = 300, unsigned wWidth = 1430, unsigned wHeight = 810){
+    void runStepWiseWindow(unsigned pauze = 999, unsigned wWidth = 1430, unsigned wHeight = 810){
+        // turing steps completed
         unsigned steps = 0;
+        // total steps (for animation)
+        int animator = 0;
+        // animation steps per turing step!
+        int animatorLoop = 99;
+        // window
         graphics::Window window(wWidth, wHeight, "Turing Machine Visualization");
         initializeColors((int)(window.getWidth()));
         window.clear();
+
+
         unsigned midX = window.getWidth()/2;
         unsigned midY = window.getHeight()/2;
-        unsigned tapeY = 5 * (window.getHeight()/6);
+        unsigned tapeY = 2 * (window.getHeight()/3);
+        unsigned squareWid = 51;
+        unsigned squareHi = 51;
+        float scannedSquareMult = 1.25;
+
         graphics::pause(100);
 
         string lastState = "null";
-        int animator = 0;
-        int animatorLoop = 27;
         while (currentState != "HALT" && tape.getSize() < sizeLimit && window.isOpen()){
-            animator++;
             Symbol currentSymbol = tape.read();
 
             Configuration configuration = head.at(currentState).at(currentSymbol);
 
-            stringstream prnt;
-            prnt << tape.toString(99, 1);
+            // VIZ
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////
             window.clear();
-            vizTape(window, midX, tapeY, tape.getHead(), configuration);
+            vizTape(window, midX, tapeY, tape.getHead(), configuration, squareWid, squareHi, scannedSquareMult);
             vizRunStats(window, steps, tape.getHead(), midX, lastState);
             vizGenome(window, configuration.signature, sdifySig(configuration));
-            vizWholeTape(window);
+            vizWholeTape(window, sigToColor.at(configuration.signature));
             if (animator % animatorLoop != 0){
-                vizBinding(window, configuration, midX, ((animator%animatorLoop)/((double)animatorLoop)));
+                vizBinding(window, configuration, midX, tapeY - scannedSquareMult*squareWid,((animator%animatorLoop)/((double)animatorLoop)), 0.54);
             }
             window.update();
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////
             
             if(animator % animatorLoop == 0){
                 graphics::pause(pauze);
@@ -684,19 +694,19 @@ class TM{
             else{
                 graphics::pause(pauze*(1/animatorLoop));
             }
+            animator++;
         }
     }
 
-    void vizTape(graphics::Window& window, unsigned x, unsigned y, unsigned squarePos, Configuration config){
-        int wid = 51;
-        int hi = 51;
-        int flank = 11;
+    void vizTape(graphics::Window& window, unsigned x, unsigned y, unsigned squarePos, Configuration config, unsigned sqWid, unsigned sqHi, float mult){
+        int flank = 12;
 
         // current square
-        graphics::drawShapeWithText(window, tape.readStr(), x, y, (int)(wid*1.25), (int)(hi*1.25), true, tape.cellColors.at(squarePos));  
+        graphics::drawShapeWithText(window, tape.readStr(), x, y, sqWid*mult, sqHi*mult, true, 
+                            tape.cellColors.at(squarePos));
+
         // head      
-        // graphics::drawShapeWithText(window, currentState + " {\"" + tape.readStr() + "\"} = " + config.sdSig, x, y-((int)(1.25*hi)), (int)(wid*1.25) * 5, hi, true, sigToColor.at(config.signature));
-        graphics::drawShapeAroundText(window, currentState + " {\"" + tape.readStr() + "\"} = " + config.sdSig, x, y-((int)(1.25*hi)), hi, sigToColor.at(config.signature));
+        graphics::drawShapeAroundText(window, currentState + " {\"" + tape.readStr() + "\"} = " + config.sdSig, x, y-((int)(mult*sqHi)), 30, sigToColor.at(config.signature), 3);
         
 
         // edges
@@ -704,17 +714,18 @@ class TM{
         stringstream ls;
         rs << "   ... << [" << tape.getHead() - 1 << "]...";
         ls << "   ...[" <<tape.getSize() - tape.getHead() << "] >> ...";
+        int charWid = 36;
         for (unsigned i = 0; i <= flank; i++){
             if (i!= flank){
-                graphics::drawShapeWithText(window, tape.readStr(-i), x-((int)(wid*1.25))-(wid*(std::max(0, int(i-1)))), y, wid, hi, true, 
+                graphics::drawShapeWithText(window, tape.readStr(-i), x-((int)(sqWid*mult))-(sqWid*(std::max(0, int(i-1)))), y, sqWid, sqHi, true, 
                             tape.cellColors.at(std::max((int)(squarePos - i), 0)));
-                graphics::drawShapeWithText(window, tape.readStr(i), x+((int)(wid*1.25))+(wid*(std::max(0, int(i-1)))), y, wid, hi, true,
+                graphics::drawShapeWithText(window, tape.readStr(i), x+((int)(sqWid*1.25))+(sqWid*(std::max(0, int(i-1)))), y, sqWid, sqHi, true,
                             tape.cellColors.at(std::min(squarePos + i, tape.getSize()-1)));
-                        }
+                }
             else{
-                graphics::drawShapeWithText(window, rs.str(), x-((int)(wid*1.25))-(wid*(std::max(0, int(i-1)))) - wid, y, wid*2, hi, true, 
+                graphics::drawShapeWithText(window, rs.str(), x-((int)(sqWid*mult))-(sqWid*(std::max(0, int(i-1)))) - sqWid, y, sqWid*2, sqHi, true, 
                             tape.cellColors.at(std::max((int)(squarePos - i), 0)));
-                graphics::drawShapeWithText(window, ls.str(), x+((int)(wid*1.25))+(wid*(std::max(0, int(i-1)))) + wid, y, wid*2, hi, true,
+                graphics::drawShapeWithText(window, ls.str(), x+((int)(sqWid*1.25))+(sqWid*(std::max(0, int(i-1)))) + sqWid, y, sqWid*2, sqWid, true,
                             tape.cellColors.at(std::min(squarePos + i, tape.getSize()-1)));
             }
         }
@@ -853,13 +864,12 @@ class TM{
         }
     }
 
-    void vizBinding(graphics::Window& window, const Configuration& config, unsigned midX, double iterPercent){
+    void vizBinding(graphics::Window& window, const Configuration& config, unsigned midX, unsigned y, double iterPercent, float movePercent){
         string currSig = config.signature;
         string currGene = sdifySig(config);
-        double realP = iterPercent > 0.6 ? 1.0 : iterPercent/0.6;
+        double realP = iterPercent > movePercent ? 1.0 : iterPercent/movePercent;
         int widdy = (int) window.getWidth()/signatures.size() * 5;
-        int yBind = 4.5 * (window.getHeight()/6);
-        int yAx = yBind - ((yBind-195)*(1-realP));
+        int yAx = y - ((y-75)*(1-realP));
         int xAx;
         if (scaleToGene.at(sigToScale.at(currSig)) >= midX){
             xAx = scaleToGene.at(sigToScale.at(currSig)) - ((scaleToGene.at(sigToScale.at(currSig)) - midX) * realP);
@@ -871,17 +881,17 @@ class TM{
         // signature
         int widSig = graphics::widthOfTextBox(currGene, 0);
         xAx += graphics::widthOfTextBox(currSig + " = ", 0)/2.0;
-        graphics::drawShapeAroundText(window, currGene, xAx , yAx, 30, sigToColor.at(currSig));
+        graphics::drawShapeAroundText(window, currGene, xAx , yAx, 30, sigToColor.at(currSig), 3);
 
 
     }
 
-    void vizWholeTape(graphics::Window& window){
+    void vizWholeTape(graphics::Window& window, const string& headStr){
         int wid = (int)(window.getWidth()/tape.cellsInUse);
 
         for (unsigned i = 0; i < tape.cellsInUse; i++){
             if (i == tape.getHead()){
-                window.fillRect(i * wid + (wid * 0.25), window.getHeight()-99, wid/2, 10);
+                graphics::drawShapeWithText(window, "HEAD ", (i + 0.5) * wid, window.getHeight()-99, wid, 18, true, headStr);
             }
             window.setColor(tape.cellColors.at(i));
             window.fillRect(i * wid, window.getHeight()-90, wid, 27);
@@ -897,7 +907,6 @@ class TM{
             }
             else{
                 window.setColor(dullerColor(tape.cellColors.at(i)));
-                // window.setColor(graphics::WHITE);
             }
             window.fillRect(i * wid, window.getHeight()-62, wid, 27);
             window.setColor(graphics::BLACK);
@@ -905,16 +914,3 @@ class TM{
         }
     }
 };
-
-
-/*
-
-make the binding animation better
-
-first: make a draw text function auto fit the element size around the text
-
-second: helper fn to draw genomic thing (either signature or full one)...just split by D, then concatenate them as chunks
-
-third: binding animation will actually show the segments coming apart, matching, fitting, staying!
-
-*/
