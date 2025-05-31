@@ -439,6 +439,8 @@ class TM{
     Tape& tape;    
     unsigned sizeLimit;
 
+    string fullSD;
+
     unordered_set<string> configs;
     unordered_map<string, unsigned> configIds;
     vector<string> signatures;
@@ -523,6 +525,7 @@ class TM{
                 utm->addConfiguration(state, config);
 
                 utm->standardDesctription.push_back(config.sd);
+                utm->fullSD += config.sd;
                 utm->sdSignatures.push_back(config.sdSig);
                 utm->SDNum.push_back(config.sdNum);
             }
@@ -572,170 +575,6 @@ class TM{
         }
         
         stateMap.insert({config.readSymbol, config});
-    }
-
-    void run(){
-        cout << "Starting TM run..." << endl;
-        cout << "  Initial head position: " << tape.getHead() << endl;
-        cout << "  Initial tape state: " << tape.toString(20, 1) << endl;
-
-        unsigned steps = 0;
-
-        while (currentState != "HALT" && tape.getSize() < sizeLimit){
-            cout << tape.toString(10, 1) << endl;
-            Symbol currentSymbol = tape.read();
-
-            Configuration configuration = head.at(currentState).at(currentSymbol);
-            
-            tape.write(configuration.writeSymbol);
-
-            if (configuration.direction == LEFT){
-                tape.left();
-            }
-            else if (configuration.direction == RIGHT){
-                tape.right();
-            }
-
-            currentState = configuration.nextConfig;
-            steps++;
-        }
-        cout << "Halting...Steps taken: " << steps << endl;
-    }
-
-    void runStepwise(int step){
-        unsigned steps = 0;
-       
-        while (currentState != "HALT" && tape.getSize() < sizeLimit){
-            
-            Symbol currentSymbol = tape.read();
-
-            Configuration configuration = head.at(currentState).at(currentSymbol);
-
-            if(steps % step == 0){
-                cout << "@ " << steps << ": SIGNATURE = " << configuration.signature << endl;
-                cout << tape.toString(10, 1) << endl << endl;
-                cin.get();
-            }
-            
-            tape.write(configuration.writeSymbol);
-
-            if (configuration.direction == LEFT){
-                tape.left();
-            }
-            else if (configuration.direction == RIGHT){
-                tape.right();
-            }
-
-            currentState = configuration.nextConfig;
-            steps++;
-        }
-        cout << "Halting...Steps taken: " << steps << endl;
-    }
-
-    void runStepWiseWindow(unsigned pauze = 999, unsigned wWidth = 1430, unsigned wHeight = 810){
-        // turing steps completed
-        unsigned steps = 0;
-        // total steps (for animation)
-        int animator = 0;
-        // animation steps per turing step!
-        int animatorLoop = 99;
-        // window
-        graphics::Window window(wWidth, wHeight, "Turing Machine Visualization");
-        initializeColors((int)(window.getWidth()));
-        window.clear();
-
-
-        unsigned midX = window.getWidth()/2;
-        unsigned midY = window.getHeight()/2;
-        unsigned tapeY = 2 * (window.getHeight()/3);
-        unsigned squareWid = 51;
-        unsigned squareHi = 51;
-        float scannedSquareMult = 1.25;
-
-        graphics::pause(100);
-
-        string lastState = "null";
-        while (currentState != "HALT" && tape.getSize() < sizeLimit && window.isOpen()){
-            Symbol currentSymbol = tape.read();
-
-            Configuration configuration = head.at(currentState).at(currentSymbol);
-
-            // VIZ
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////
-            window.clear();
-            vizTape(window, midX, tapeY, tape.getHead(), configuration, squareWid, squareHi, scannedSquareMult);
-            vizRunStats(window, steps, tape.getHead(), midX, lastState);
-            vizGenome(window, configuration.signature, sdifySig(configuration));
-            vizWholeTape(window, sigToColor.at(configuration.signature));
-            if (animator % animatorLoop != 0){
-                vizBinding(window, configuration, midX, tapeY - scannedSquareMult*squareWid,((animator%animatorLoop)/((double)animatorLoop)), 0.54);
-            }
-            window.update();
-            ///////////////////////////////////////////////////////////////////////////////////////////////////////
-            
-            if(animator % animatorLoop == 0){
-                graphics::pause(pauze);
-                tape.write(configuration.writeSymbol);
-
-                if (tape.cellColors[tape.getHead()] == graphics::WHITE){tape.cellsInUse++;}
-                tape.cellColors[tape.getHead()] = sigToColor.at(configuration.signature);
-
-                if (configuration.direction == LEFT){
-                    tape.left();
-                }
-                else if (configuration.direction == RIGHT){
-                    tape.right();
-                }
-
-                lastState = currentState + " {\"" + tape.readStr() + "\"}";
-                currentState = configuration.nextConfig;
-                steps++;
-            }
-            else{
-                graphics::pause(pauze*(1/animatorLoop));
-            }
-            animator++;
-        }
-    }
-
-    void vizTape(graphics::Window& window, unsigned x, unsigned y, unsigned squarePos, Configuration config, unsigned sqWid, unsigned sqHi, float mult){
-        int flank = 12;
-
-        // current square
-        graphics::drawShapeWithText(window, tape.readStr(), x, y, sqWid*mult, sqHi*mult, true, 
-                            tape.cellColors.at(squarePos));
-
-        // head      
-        graphics::drawShapeAroundText(window, currentState + " {\"" + tape.readStr() + "\"} = " + config.sdSig, x, y-((int)(mult*sqHi)), 30, sigToColor.at(config.signature), 3);
-        
-
-        // edges
-        stringstream rs;
-        stringstream ls;
-        rs << "   ... << [" << tape.getHead() - 1 << "]...";
-        ls << "   ...[" <<tape.getSize() - tape.getHead() << "] >> ...";
-        int charWid = 36;
-        for (unsigned i = 0; i <= flank; i++){
-            if (i!= flank){
-                graphics::drawShapeWithText(window, tape.readStr(-i), x-((int)(sqWid*mult))-(sqWid*(std::max(0, int(i-1)))), y, sqWid, sqHi, true, 
-                            tape.cellColors.at(std::max((int)(squarePos - i), 0)));
-                graphics::drawShapeWithText(window, tape.readStr(i), x+((int)(sqWid*1.25))+(sqWid*(std::max(0, int(i-1)))), y, sqWid, sqHi, true,
-                            tape.cellColors.at(std::min(squarePos + i, tape.getSize()-1)));
-                }
-            else{
-                graphics::drawShapeWithText(window, rs.str(), x-((int)(sqWid*mult))-(sqWid*(std::max(0, int(i-1)))) - sqWid, y, sqWid*2, sqHi, true, 
-                            tape.cellColors.at(std::max((int)(squarePos - i), 0)));
-                graphics::drawShapeWithText(window, ls.str(), x+((int)(sqWid*1.25))+(sqWid*(std::max(0, int(i-1)))) + sqWid, y, sqWid*2, sqWid, true,
-                            tape.cellColors.at(std::min(squarePos + i, tape.getSize()-1)));
-            }
-        }
-
-    }
-
-    void vizRunStats(graphics::Window& window, int numIters, int sqarePos, unsigned midX, string lastState){
-        stringstream ss;
-        ss << "Iteration #" << numIters << ", on sqaure #" << sqarePos << ", last state: " << lastState;
-        graphics::drawShapeWithText(window, ss.str(), midX, window.getHeight()-18, window.getWidth(), 25);
     }
 
     string sdifyQ(Configuration conf){
@@ -827,6 +666,177 @@ class TM{
         return ss.str();
     }
 
+    void run(){
+        cout << "Starting TM run..." << endl;
+        cout << "  Initial head position: " << tape.getHead() << endl;
+        cout << "  Initial tape state: " << tape.toString(20, 1) << endl;
+
+        unsigned steps = 0;
+
+        while (currentState != "HALT" && tape.getSize() < sizeLimit){
+            cout << tape.toString(10, 1) << endl;
+            Symbol currentSymbol = tape.read();
+
+            Configuration configuration = head.at(currentState).at(currentSymbol);
+            
+            tape.write(configuration.writeSymbol);
+
+            if (configuration.direction == LEFT){
+                tape.left();
+            }
+            else if (configuration.direction == RIGHT){
+                tape.right();
+            }
+
+            currentState = configuration.nextConfig;
+            steps++;
+        }
+        cout << "Halting...Steps taken: " << steps << endl;
+    }
+
+    void runStepwise(int step){
+        unsigned steps = 0;
+       
+        while (currentState != "HALT" && tape.getSize() < sizeLimit){
+            
+            Symbol currentSymbol = tape.read();
+
+            Configuration configuration = head.at(currentState).at(currentSymbol);
+
+            if(steps % step == 0){
+                cout << "@ " << steps << ": SIGNATURE = " << configuration.signature << endl;
+                cout << tape.toString(10, 1) << endl << endl;
+                cin.get();
+            }
+            
+            tape.write(configuration.writeSymbol);
+
+            if (configuration.direction == LEFT){
+                tape.left();
+            }
+            else if (configuration.direction == RIGHT){
+                tape.right();
+            }
+
+            currentState = configuration.nextConfig;
+            steps++;
+        }
+        cout << "Halting...Steps taken: " << steps << endl;
+    }
+
+    void runStepWiseWindow(unsigned pauze = 999, unsigned wWidth = 1500, unsigned wHeight = 810){
+        // turing steps completed
+        unsigned steps = 0;
+        // total steps (for animation)
+        int animator = 0;
+        // animation steps per turing step!
+        int animatorLoop = 270;
+        // window
+        graphics::Window window(wWidth, wHeight, "Turing Machine Visualization");
+        initializeColors((int)(window.getWidth()));
+        window.clear();
+
+
+        unsigned midX = window.getWidth()/2;
+        unsigned midY = window.getHeight()/2;
+        unsigned tapeY = 2 * (window.getHeight()/3);
+        unsigned squareWid = wHeight/10;
+        unsigned squareHi = squareWid;
+        float scannedSquareMult = 1.25;
+
+        graphics::pause(100);
+
+        while (currentState != "HALT" && tape.getSize() < sizeLimit && window.isOpen()){
+            Symbol currentSymbol = tape.read();
+
+            Configuration configuration = head.at(currentState).at(currentSymbol);
+
+            // VIZ
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////
+            window.clear();
+            vizTape(window, midX, tapeY, tape.getHead(), configuration, squareWid, squareHi, scannedSquareMult);
+            vizRunStats(window, steps, tape.getHead(), midX);
+            vizGenome(window, configuration.signature, sdifySig(configuration));
+            vizWholeTape(window, sigToColor.at(configuration.signature));
+            if (animator % animatorLoop != 0){
+                vizBinding(window, configuration, midX, tapeY - scannedSquareMult*squareWid,((animator%animatorLoop)/((double)animatorLoop)), 0.54);
+            }
+            window.update();
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////
+            
+            if(animator % animatorLoop == 0){
+                graphics::pause(pauze);
+                tape.write(configuration.writeSymbol);
+
+                if (tape.cellColors[tape.getHead()] == graphics::WHITE){tape.cellsInUse++;}
+                tape.cellColors[tape.getHead()] = sigToColor.at(configuration.signature);
+
+                if (configuration.direction == LEFT){
+                    tape.left();
+                }
+                else if (configuration.direction == RIGHT){
+                    tape.right();
+                }
+
+                currentState = configuration.nextConfig;
+                steps++;
+            }
+            else{
+                graphics::pause(pauze*(1/animatorLoop));
+            }
+            animator++;
+        }
+    }
+
+    void vizTape(graphics::Window& window, unsigned x, unsigned y, unsigned squarePos, Configuration config, unsigned sqWid, unsigned sqHi, float mult){
+        // squares on either side
+        int flank = 1 + ((window.getWidth() - (sqWid*(mult + 4)))/2.0)/sqWid;
+
+        // current square
+        graphics::drawShapeWithText(window, tape.readStr(), x, y, sqWid*mult, sqHi*mult, true, 
+                            tape.cellColors.at(squarePos));
+
+        // head      
+        graphics::drawShapeAroundText(window, currentState + " {\"" + tape.readStr() + "\"} = " + config.sdSig, x, y-((int)(mult*sqHi)), 30, sigToColor.at(config.signature), 3);
+        
+
+        // edges
+        stringstream rs;
+        stringstream ls;
+        rs << "   ... << [" << tape.getHead() - 1 << "]...";
+        ls << "   ...[" <<tape.getSize() - tape.getHead() << "] >> ...";
+
+
+        int charWid = 100;
+        for (unsigned i = 0; i <= flank; i++){
+            if (i!= flank){
+                graphics::drawShapeWithText(window, tape.readStr(-i), 
+                    x-((int)(sqWid*mult))-(sqWid*(std::max(0, int(i-1)))), 
+                y, sqWid, sqHi, true, tape.cellColors.at(std::max((int)(squarePos - i), 0)));
+
+                graphics::drawShapeWithText(window, tape.readStr(i), 
+                    x+((int)(sqWid*mult))+(sqWid*(std::max(0, int(i-1)))), 
+                y, sqWid, sqHi, true,tape.cellColors.at(std::min(squarePos + i, tape.getSize()-1)));
+                }
+            else{
+                graphics::drawShapeWithText(window, rs.str(), 
+                    sqWid,
+                y, sqWid*2, sqHi, true, tape.cellColors.at(std::max((int)(squarePos - i), 0)));
+
+                graphics::drawShapeWithText(window, ls.str(), 
+                    window.getWidth() - sqWid,
+                y, sqWid*2, sqWid, true, tape.cellColors.at(std::min(squarePos + i, tape.getSize()-1)));
+            }
+        }
+
+    }
+
+    void vizRunStats(graphics::Window& window, int numIters, int sqarePos, unsigned midX){
+        stringstream ss;
+        ss << "Iteration #" << numIters << ", on sqaure #" << sqarePos;
+        graphics::drawShapeWithText(window, ss.str(), midX, window.getHeight() * 0.975, window.getWidth(), window.getHeight() * 0.05);
+    }
+
     void initializeColors(unsigned width) {
         std::vector<std::string> colors = generateColorSpectrum(signatures.size());
         
@@ -842,24 +852,17 @@ class TM{
     }
 
     void vizGenome(graphics::Window& window, const string& currSig, const string& currGene){
-        int x;
-        for (const string& s : standardDesctription){
-            x += s.size();
-        }
-
         stringstream ss;
-        ss << "Turing Machine Genome: " << configs.size()-1 << " genes, " << x << " total nucleotides!";
+        ss << "Turing Machine Genome: " << configs.size()-1 << " genes, " << fullSD.size() << " total nucleotides!";
         graphics::drawShapeWithText(window, ss.str(), window.getWidth()/2, 15, 540, 27);
         int widdy = (int) window.getWidth()/signatures.size();
         for (string s : signatures){
-            graphics::drawShapeWithText(window, std::to_string(1+signatureToCongifIndex.at(s)), scaleToGene.at(sigToScale.at(s)), 45, widdy, 30, true, sigToColor.at(s));
+            graphics::drawShapeWithText(window, "Q" + std::to_string(1+signatureToCongifIndex.at(s)), scaleToGene.at(sigToScale.at(s)), 45, widdy, 30, true, sigToColor.at(s));
             if (s == currSig){
-                // graphics::drawShapeWithText(window, sdint(currGene), scaleToGene.at(sigToScale.at(s)), 75, 630, 30, true, sigToColor.at(s));
-                graphics::drawShapeAroundText(window, sdint(currGene), scaleToGene.at(sigToScale.at(s)), 75, 30, sigToColor.at(s), 2);
-                // graphics::drawShapeWithText(window, currGene, scaleToGene.at(sigToScale.at(s)), 105, 630, 30, true, sigToColor.at(s));
-                graphics::drawShapeAroundText(window, currGene, scaleToGene.at(sigToScale.at(s)), 105, 30, sigToColor.at(s), 2);
-                // graphics::drawShapeWithText(window, s, scaleToGene.at(sigToScale.at(s)), 135, widdy*5, 30, true, sigToColor.at(s));
-                graphics::drawShapeAroundText(window, s, scaleToGene.at(sigToScale.at(s)), 135, 30, sigToColor.at(s), 2);
+                // SD
+                graphics::drawShapeAroundText(window, currGene, scaleToGene.at(sigToScale.at(s)), 75, 30, sigToColor.at(s), 2);
+                // human signature
+                graphics::drawShapeAroundText(window, s, scaleToGene.at(sigToScale.at(s)), 105, 30, sigToColor.at(s), 2);
             }   
         }
     }
@@ -869,7 +872,7 @@ class TM{
         string currGene = sdifySig(config);
         double realP = iterPercent > movePercent ? 1.0 : iterPercent/movePercent;
         int widdy = (int) window.getWidth()/signatures.size() * 5;
-        int yAx = y - ((y-75)*(1-realP));
+        int yAx = y - ((y-45)*(1-realP));
         int xAx;
         if (scaleToGene.at(sigToScale.at(currSig)) >= midX){
             xAx = scaleToGene.at(sigToScale.at(currSig)) - ((scaleToGene.at(sigToScale.at(currSig)) - midX) * realP);
@@ -886,17 +889,27 @@ class TM{
 
     }
 
-    void vizWholeTape(graphics::Window& window, const string& headStr){
+    void vizWholeTape(graphics::Window& window, const string& headColor){
         int wid = (int)(window.getWidth()/tape.cellsInUse);
 
+        string headthing;
+        int headX;
+        if (tape.getHead() < tape.cellsInUse) {
+            // Head is within the visible cells - show exact position
+            headthing = "HEAD ";
+            headX = (tape.getHead() + 0.5) * wid;
+        } else {
+            // Head is beyond visible cells - show arrow at right edge
+            headthing = "HEAD >> ";
+            headX = window.getWidth() - wid/2.0;
+        }
+        graphics::drawShapeWithText(window, headthing, headX, window.getHeight() * 0.8, wid, window.getHeight() * 0.027, true, headColor);
+
         for (unsigned i = 0; i < tape.cellsInUse; i++){
-            if (i == tape.getHead()){
-                graphics::drawShapeWithText(window, "HEAD ", (i + 0.5) * wid, window.getHeight()-99, wid, 18, true, headStr);
-            }
             window.setColor(tape.cellColors.at(i));
-            window.fillRect(i * wid, window.getHeight()-90, wid, 27);
+            window.fillRect(i * wid, window.getHeight() * 0.825, wid, window.getHeight() * 0.05);
             window.setColor(graphics::BLACK);
-            window.drawRect(i * wid, window.getHeight()-90, wid, 27);
+            window.drawRect(i * wid, window.getHeight() * 0.825, wid, window.getHeight() * 0.05);
 
 
             if (toStr.at(tape.readAt(i)) == '0'){
@@ -908,9 +921,9 @@ class TM{
             else{
                 window.setColor(dullerColor(tape.cellColors.at(i)));
             }
-            window.fillRect(i * wid, window.getHeight()-62, wid, 27);
+            window.fillRect(i * wid, window.getHeight() * 0.875, wid, window.getHeight() * 0.05);
             window.setColor(graphics::BLACK);
-            window.drawRect(i * wid, window.getHeight()-62, wid, 27);
+            window.drawRect(i * wid, window.getHeight() * 0.875, wid, window.getHeight() * 0.05);
         }
     }
 };
