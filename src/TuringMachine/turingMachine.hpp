@@ -724,13 +724,14 @@ class TM{
         cout << "Halting...Steps taken: " << steps << endl;
     }
 
-    void runStepWiseWindow(unsigned pauze = 999, unsigned wWidth = 1500, unsigned wHeight = 810){
+    void runStepWiseWindow(unsigned pauze = 9, unsigned wWidth = 1500, unsigned wHeight = 810){
         // turing steps completed
         unsigned steps = 0;
         // total steps (for animation)
         int animator = 0;
         // animation steps per turing step!
-        int animatorLoop = 270;
+        int animatorLoop = 81;
+        animatorLoop = std::min(animatorLoop, (int)pauze);
         // window
         graphics::Window window(wWidth, wHeight, "Turing Machine Visualization");
         initializeColors((int)(window.getWidth()));
@@ -903,6 +904,7 @@ class TM{
             headthing = "HEAD >> ";
             headX = window.getWidth() - wid/2.0;
         }
+        int actualWid = std::max(wid, (int)(7 * headthing.size()));
         graphics::drawShapeWithText(window, headthing, headX, window.getHeight() * 0.8, wid, window.getHeight() * 0.027, true, headColor);
 
         for (unsigned i = 0; i < tape.cellsInUse; i++){
