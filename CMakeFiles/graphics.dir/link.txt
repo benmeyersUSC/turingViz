@@ -1,0 +1,2 @@
+/Library/Developer/CommandLineTools/usr/bin/ar qc libgraphics.a CMakeFiles/graphics.dir/graphics/graphics.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/ranlib libgraphics.a

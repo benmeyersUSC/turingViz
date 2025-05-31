@@ -1,0 +1,46 @@
+INIT - S_ - SENTINEL - R - INIT0;
+INIT0 - S_ - S_ - R - INIT1;
+INIT1 - S_ - S0 - R - INIT2;
+INIT2 - S_ - S_ - R - INIT3;
+INIT3 - S_ - S1 - R - INIT4;
+INIT4 - S_ - S_ - R - INIT5;
+INIT5 - S_ - S0 - R - FIND_0;
+
+FIND_0 - S_ - S_ - L - FIND_0;
+FIND_0 - S0 - S0 - L - FIND_0_in;
+
+FIND_0_in - S_ - S_ - L - FIND_0_in;
+FIND_0_in - S0 - S0 - R - MARK_1;
+FIND_0_in - S1 - S1 - L - FIND_0_in;
+
+MARK_1 - S_ - S_ - R - MARK_1;
+MARK_1 - S0 - S0 - R - FIND_X;
+MARK_1 - S1 - S1 - R - MARK;
+
+MARK - S_ - X - R - MARK_1;
+
+FIND_X - S_ - S_ - L - FIND_X;
+FIND_X - S0 - S0 - L - FIND_X_in;
+FIND_X - S1 - S1 - L - FIND_X;
+
+FIND_X_in - S_ - S_ - L - FIND_X_in;
+FIND_X_in - S0 - S0 - R - DONE;
+FIND_X_in - S1 - S1 - L - FIND_X_in;
+FIND_X_in - X - S_ - R - MOVE_X;
+
+MOVE_X - S_ - S_ - R - IF_MOVE_X;
+MOVE_X - S0 - S0 - R - MOVE_X;
+MOVE_X - S1 - S1 - R - MOVE_X;
+
+IF_MOVE_X - S_ - S1 - R - FIND_X;
+IF_MOVE_X - S0 - S0 - R - MOVE_X;
+IF_MOVE_X - S1 - S1 - R - MOVE_X;
+
+DONE - S_ - S_ - R - IF_DONE;
+
+IF_DONE - S_ - S1 - R - END;
+IF_DONE - S0 - S0 - R - DONE;
+IF_DONE - S1 - S1 - R - DONE;
+
+END - S_ - S_ - R - END_2;
+END_2 - S_ - S0 - R - FIND_0;
