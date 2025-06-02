@@ -936,24 +936,24 @@ class TM{
         */
 
         // signature
-        int widSig = graphics::widthOfTextBox(currGene, 3);
-        graphics::drawShapeAroundText(window, currGene, xAx , yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 3);
+        int widSig = graphics::widthOfTextBox(currGene, 6);
+        graphics::drawShapeAroundText(window, currGene, xAx , yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 6, 14, false);
 
         // write symbol
         int widWS = graphics::widthOfTextBox(sdifyWS(config), 3); // calc w padding
         //      3 padding x2      myself/2
         xAx += widSig/2.0 + widWS/2.0;
-        graphics::drawShapeAroundText(window, sdifyWS(config), xAx, yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 3); // write without padding
+        graphics::drawShapeAroundText(window, sdifyWS(config), xAx, yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 3, 14, false); // write without padding
     
         // move direction
         int widMV = graphics::widthOfTextBox(sdifyMV(config), 3);
         xAx += widWS/2.0 + widMV/2.0;
-        graphics::drawShapeAroundText(window, sdifyMV(config), xAx, yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 3);
+        graphics::drawShapeAroundText(window, sdifyMV(config), xAx, yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 3, 14, false);
 
         // next config
-        int widNC = graphics::widthOfTextBox(sdifyNC(config), 3);
+        int widNC = graphics::widthOfTextBox(sdifyNC(config), 6);
         xAx += widMV/2.0 + widNC/2.0;
-        graphics::drawShapeAroundText(window, sdifyNC(config), xAx, yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 3);
+        graphics::drawShapeAroundText(window, sdifyNC(config), xAx, yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 6, 14, false);
     }
 
     void vizWholeTape(graphics::Window& window, const string& headColor){
