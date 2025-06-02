@@ -744,8 +744,6 @@ class TM{
         unsigned squareHi = squareWid;
         float scannedSquareMult = 1.25;
 
-        graphics::pause(100);
-
         while (currentState != "HALT" && tape.getSize() < sizeLimit && window.isOpen()){
             // where are we?
             Symbol currentSymbol = tape.read();
@@ -906,6 +904,36 @@ class TM{
         else{
             xAx = scaleToGene.at(sigToScale.at(currSig)) + ((midX - scaleToGene.at(sigToScale.at(currSig))) * realP);
         }
+
+        /*
+        
+        auto last_ts = someclock.get_timestamp();
+        while (running) {
+            auto ts = someclock.get_timestamp();
+
+            engine.update(ts-last_ts);
+            engine.draw();
+
+            last_ts = ts;
+        }
+
+        //engine.update
+        void update(timedelta delta)
+        {
+            tape.update();
+            // do other state upidates here
+        }
+
+        // here, just draw. no state change, just mapping to the screen
+        void draw()
+        {
+           canvas.clear();
+           for (obj : objs)
+           {
+                obj.draw(canvas);
+           }
+        }
+        */
 
         // signature
         int widSig = graphics::widthOfTextBox(currGene, 3);
