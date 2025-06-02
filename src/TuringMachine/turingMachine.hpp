@@ -203,9 +203,18 @@ const unordered_map<char, unsigned> sdToNum = {
     {'N', 6}
 };
 
-class Tape{
+
+class Drawable{
+    private:
+    public:
+        void draw(graphics::Window&);
+};
+class Tape : public Drawable{
 
     private:
+
+    unsigned midX;
+    unsigned midY;
 
     char* values;
     unsigned head;
@@ -401,6 +410,9 @@ class Tape{
         return ss.str();
     }
 
+    void draw(graphics::Window& window){
+
+    }
 };
 
 class TM{
@@ -905,36 +917,6 @@ class TM{
             xAx = scaleToGene.at(sigToScale.at(currSig)) + ((midX - scaleToGene.at(sigToScale.at(currSig))) * realP);
         }
 
-        /*
-        
-        auto last_ts = someclock.get_timestamp();
-        while (running) {
-            auto ts = someclock.get_timestamp();
-
-            engine.update(ts-last_ts);
-            engine.draw();
-
-            last_ts = ts;
-        }
-
-        //engine.update
-        void update(timedelta delta)
-        {
-            tape.update();
-            // do other state upidates here
-        }
-
-        // here, just draw. no state change, just mapping to the screen
-        void draw()
-        {
-           canvas.clear();
-           for (obj : objs)
-           {
-                obj.draw(canvas);
-           }
-        }
-        */
-
         // signature
         int widSig = graphics::widthOfTextBox(currGene, 6);
         graphics::drawShapeAroundText(window, currGene, xAx , yAx, window.getHeight() * 0.035, sigToColor.at(currSig), 6, 14, false);
@@ -997,4 +979,69 @@ class TM{
             window.drawRect(i * wid, window.getHeight() * 0.875, wid, window.getHeight() * 0.05);
         }
     }
+};
+
+ /*
+        
+        auto last_ts = someclock.get_timestamp();
+        while (running) {
+            auto ts = someclock.get_timestamp();
+
+            engine.update(ts-last_ts);
+            engine.draw();
+
+            last_ts = ts;
+        }
+
+        //engine.update
+        void update(timedelta delta)
+        {
+            tape.update();
+            // do other state upidates here
+        }
+
+        // here, just draw. no state change, just mapping to the screen
+        void draw()
+        {
+           canvas.clear();
+           for (obj : objs)
+           {
+                obj.draw(canvas);
+           }
+        }
+        */
+
+class TMViz{
+    private:
+        graphics::Window* window;
+        TM* tm;
+        unordered_set<Drawable*> objs;
+
+    public:
+        TMViz(){
+            window = new graphics::Window(1503, 819, "Turing Machine Visualization");
+            Tape* tape = new Tape();
+            objs.emplace(tape);
+            tm = new TM(*tape);
+        }
+        void update(int elapsed){
+            /*
+            tm.update();
+            */
+        }
+        void draw(){
+            for (Drawable* obj : objs){
+                obj->draw(*window);
+            }
+        }
+        void run(){
+            bool running = true;
+            int lastTs;
+            while (running){
+                int ts;
+                update(ts-lastTs);
+                draw();
+            }
+        }
+        
 };
