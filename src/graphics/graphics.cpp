@@ -128,7 +128,7 @@ public:
         
         shouldTerminateOnClose = true;
         currentColor = BLACK;
-        
+                
         window->show();
         Fl::check();
     }
@@ -139,7 +139,6 @@ public:
             delete window;
         }
     }
-
 
 };
 
@@ -308,16 +307,35 @@ int Window::getHeight() const {
     return mImpl->window->h();
 }
 
+// bool Window::hasEvents() const {
+//     // Simplified version without real event handling for now
+//     return false;
+// }
+
+// Event Window::getEvent() {
+//     // Simplified version that just returns an empty event
+//     Event emptyEvent;
+//     emptyEvent.Type = EventType::None;
+//     return emptyEvent;
+// }
+
 bool Window::hasEvents() const {
-    // Simplified version without real event handling for now
-    return false;
+    Fl::check();  // Process FLTK events
+    std::lock_guard<std::mutex> lock(mImpl->eventMutex);
+    return !mImpl->eventQueue.empty();
 }
 
 Event Window::getEvent() {
-    // Simplified version that just returns an empty event
-    Event emptyEvent;
-    emptyEvent.Type = EventType::None;
-    return emptyEvent;
+    std::lock_guard<std::mutex> lock(mImpl->eventMutex);
+    if (mImpl->eventQueue.empty()) {
+        Event emptyEvent;
+        emptyEvent.Type = EventType::None;
+        return emptyEvent;
+    }
+    
+    Event e = mImpl->eventQueue.front();
+    mImpl->eventQueue.pop();
+    return e;
 }
 
 void Window::update() {
@@ -501,7 +519,7 @@ void drawShapeAroundText(Window& window, const std::string& text,
 
     fl_font(FL_HELVETICA, txtSize); // Set font and size
     int textWidth = fl_width(text.c_str());
-    int width = std::max(textWidth + (padding * 2), 50);
+    int width = std::max(textWidth + (padding * 2), textWidth+2);
 
     int x = centerX - width / 2;
     int y = centerY - height / 2;
