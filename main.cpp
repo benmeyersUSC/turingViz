@@ -1,13 +1,5 @@
-#include <iostream>
-#include <iostream>
-#include <sstream>
-#include <vector>
-#include <string>
-#include <random>
-
-#include "/Users/benmeyers/Desktop/turingViz/src/TuringMachine/turingMachine.hpp"
-#include "/Users/benmeyers/Desktop/turingViz/src/graphics/graphics.h"
-
+#include <nlohmann/json.hpp>
+#include "viz.h"
 
 using std::cout;
 using std::rand;
@@ -17,24 +9,26 @@ using std::max;
 using std::vector;
 using std::string;
 
+using json = nlohmann::json;
+
 int main(int argc, const char* argv[]) {
 
-    fstream file("/Users/benmeyers/Desktop/turingViz/src/TuringMachine/doubling.javaturing");
+    if (argc < 2)
+    {
+        std::cerr << "require another argument" << std::endl;
+        return 1;
+    }
+    std::ifstream ifs(argv[1]);
+    json jf = json::parse(ifs);
+    auto program_file = jf.at("turing program").get<std::string>();
+    std::fstream file(program_file);
     if (!file.is_open()) {
         std::cerr << "Failed to open file" << std::endl;
         return 1;
     }
-    
-    Tape tape;
-    
-    TM* counting = TM::fromStandardDescription(file, tape, 999);
-    
-    counting->runStepWiseWindow();
-    
-    cout << tape << endl;
 
-	cout << "Final tape size: " << tape.getSize() << endl;
-	cout << "Final head position: " << tape.getHead() << endl;
+    Tape* tp;
+    TuringMachine* tm = TuringMachine::fromStandardDescription(file, tp);
 
     return 0;
 }

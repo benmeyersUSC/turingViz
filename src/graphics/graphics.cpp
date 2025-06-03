@@ -201,7 +201,7 @@ void Window::clear() {
 
 void Window::setColor(const std::string& color) {
     // Handle both predefined colors and hex format
-    static const std::unordered_map<std::string, std::string> colorMap = {
+    const std::unordered_map<std::string, std::string> colorMap = {
         {"BLACK", BLACK},
         {"BLUE", BLUE},
         {"CYAN", CYAN},
