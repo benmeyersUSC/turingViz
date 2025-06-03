@@ -15,12 +15,16 @@
 using graphics::drawShapeAroundText;
 using graphics::drawShapeWithText;
 using graphics::widthOfTextBox;
+using graphics::Window;
+using graphics::BLACK;
+using graphics::DARK_GRAY;
 
 using std::stringstream;
 using std::to_string;
 using std::vector;
 using std::string;
 using std::unordered_map;
+using std::max;
 
 namespace helper{
     enum Symbol{
@@ -111,11 +115,16 @@ struct Configuration{
 
     string sd;
     string sdSig;
+    string sdWS;
+    string sdMV;
+    string sdNC;
     string sdNum;
 
     string color;
 
     Configuration(const unsigned idx, const string& nm, Symbol rd, const Symbol wt, const Direction d, string nxt);
+
+    void draw(Window* window, unsigned x, unsigned y, unsigned height);
 };
 
 

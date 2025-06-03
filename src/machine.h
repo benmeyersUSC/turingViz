@@ -82,8 +82,6 @@ class TuringMachine{
 
     void drawGenome(Window* window, unsigned halfWidth, unsigned wWidth, unsigned wHeight, double genomeMult, unsigned widthPerState);
 
-    void drawWholeTape(Window* window);
-
     void drawBinding(Window* window, double movePercent, unsigned fromY, unsigned toY, unsigned widthPerState, unsigned halfWidth, unsigned genomeHeight);
 
     void draw(Window* window);

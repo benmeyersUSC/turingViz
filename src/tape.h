@@ -16,10 +16,11 @@ class Tape{
     unsigned head;
     unsigned size;
     string tapeFill;
+    unsigned cellsInUse;
+
 
     public:
     unordered_map<unsigned, string> cellColors;
-    unsigned cellsInUse;
 
 
     unsigned getHead();
@@ -46,9 +47,15 @@ class Tape{
 
     unsigned getSize();
 
+    void incrCellsInUse();
+
+    unsigned getCellsInUse();
+
     friend ostream& operator<<(ostream& ss, const Tape& tp);
 
     string toString(unsigned len, unsigned step) const ;
 
-    void draw(graphics::Window* window, Configuration* config);
+    void draw(Window* window, Configuration* config);
+
+    void drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult);
 };

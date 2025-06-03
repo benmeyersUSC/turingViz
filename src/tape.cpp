@@ -4,6 +4,7 @@ using helper::toStr;
 using helper::S_;
 using helper::toSym;
 using helper::symInd;
+using helper::dullerColor;
 
 unsigned Tape::getHead(){return head;}
 
@@ -120,6 +121,14 @@ unsigned Tape::getSize(){
     return size;
 }
 
+unsigned Tape::getCellsInUse(){
+    return cellsInUse;
+}
+
+void Tape::incrCellsInUse(){
+    cellsInUse++;
+}
+
 ostream& operator<<(ostream& ss, const Tape& tp){
     ss << tp.toString(tp.size, 1);
     return ss;
@@ -169,7 +178,7 @@ string Tape::toString(unsigned len, unsigned step) const {
     return ss.str();
 }
 
-void Tape::draw(graphics::Window* window, Configuration* config){  
+void Tape::draw(Window* window, Configuration* config){  
     unsigned x = window->getWidth()/2;
     unsigned y = window->getHeight()/2;
 
@@ -229,5 +238,47 @@ void Tape::draw(graphics::Window* window, Configuration* config){
                 window->getWidth() - dim,
             y, dim*2, dim, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
         }
+    }
+}
+
+void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult){
+    unsigned wid = wWidth/cellsInUse;
+
+    // moving head:
+    string headthing;
+    int headX;
+    if (getHead() < cellsInUse) {
+        // Head is within the visible cells - show exact position
+        headthing = "HEAD ";
+        headX = (getHead() + 0.5) * wid;
+    } else {
+        // Head is beyond visible cells - show arrow at right edge
+        headthing = "HEAD >> ";
+        headX = wWidth - wid/2.0;
+    }
+    // min size
+    int cappedWid = max(wid, (unsigned)(12 * headthing.size()));
+    drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 3.75 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
+
+    for (unsigned i = 0; i < cellsInUse; i++){
+        // config-stained view
+        window->setColor(cellColors.at(i));
+        window->fillRect(i * wid, wHeight * (1.0 - 3.5*heightMult), wid, wHeight * heightMult);
+        window->setColor(BLACK);
+        window->drawRect(i * wid, wHeight * (1.0 - 3.5*heightMult), wid, wHeight * heightMult);
+
+        // binary view
+        if (toStr.at(readAt(i)) == '0'){
+            window->setColor(DARK_GRAY);
+        }
+        else if (toStr.at(readAt(i)) == '1'){
+            window->setColor(BLACK);
+        }
+        else{
+            window->setColor(dullerColor(cellColors.at(i)));
+        }
+        window->fillRect(i * wid, wHeight * (1.0 - 2.5*heightMult), wid, wHeight * heightMult);
+        window->setColor(BLACK);
+        window->drawRect(i * wid, wHeight * (1.0 - 2.5*heightMult), wid, wHeight * heightMult);
     }
 }

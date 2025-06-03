@@ -13,6 +13,28 @@ namespace helper{
     signature(name + "{\'" + toStr.at(readSymbol) + "\'}")
     {}
 
+    void Configuration::draw(Window* window, unsigned x, unsigned y, unsigned height){
+        // signature
+        int widSig = widthOfTextBox(sdSig, 6);
+        drawShapeAroundText(*window, sdSig, x , y, height, color, 6, 14, false);
+
+        // write symbol
+        int widWS = widthOfTextBox(sdWS, 3); 
+        //      3 padding x2      myself/2
+        x += widSig/2.0 + widWS/2.0;
+        drawShapeAroundText(*window, sdWS, x, y, height, color, 3, 14, false); 
+    
+        // move direction
+        int widMV = widthOfTextBox(sdMV, 3);
+        x += widWS/2.0 + widMV/2.0;
+        drawShapeAroundText(*window, sdMV, x, y, height, color, 3, 14, false);
+
+        // next config
+        int widNC = widthOfTextBox(sdNC, 6);
+        x += widMV/2.0 + widNC/2.0;
+        drawShapeAroundText(*window, sdNC, x, y, height, color, 6, 14, false);
+    }
+
     vector<string> split(const string& str, char delimiter) {
         vector<string> tokens;
         stringstream ss(str);
