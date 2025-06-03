@@ -14,8 +14,10 @@
 #include "graphics.h"
 using graphics::drawShapeAroundText;
 using graphics::drawShapeWithText;
+using graphics::widthOfTextBox;
 
 using std::stringstream;
+using std::to_string;
 using std::vector;
 using std::string;
 using std::unordered_map;

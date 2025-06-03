@@ -78,13 +78,13 @@ class TuringMachine{
 
     bool update(unsigned loops);
 
-    void drawRunStats(Window* window);
+    void drawRunStats(Window* window, unsigned width, unsigned halfWidth, unsigned wHeight, double statSize);
 
-    void drawGenome(Window* window);
+    void drawGenome(Window* window, unsigned halfWidth, unsigned wWidth, unsigned wHeight, double genomeMult, unsigned widthPerState);
 
     void drawWholeTape(Window* window);
 
-    void drawBinding(Window* window);
+    void drawBinding(Window* window, double movePercent, unsigned fromY, unsigned toY, unsigned widthPerState, unsigned halfWidth, unsigned genomeHeight);
 
     void draw(Window* window);
 

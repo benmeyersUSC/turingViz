@@ -9,6 +9,8 @@ using helper::RIGHT;
 using helper::LEFT;
 using helper::NONE;
 using helper::sdToNum;
+using helper::dullerColor;
+using helper::toStr;
 
 TuringMachine::TuringMachine(Tape* tp, unsigned msPerState): tape(tp), sizeLimit(999), stateRate(msPerState){}
 
@@ -231,122 +233,147 @@ bool TuringMachine::update(unsigned elapsed){
     return !(currentState == "HALT");
 }
 
-void TuringMachine::drawRunStats(Window* window){
+void TuringMachine::drawRunStats(Window* window, unsigned width, unsigned halfWidth, unsigned wHeight, double statSize){
     stringstream ss;
     ss << "Iteration #" << steps << ", on square #" << tape->getHead();
-    drawShapeWithText(*window, ss.str(), window->getWidth()/2, window->getHeight() * 0.975, window->getWidth(), window->getHeight() * 0.05);
+    drawShapeWithText(*window, ss.str(), halfWidth, wHeight * (1.0 - (statSize * 0.5)), width, wHeight * statSize);
 }
 
-void TuringMachine::drawGenome(Window* window){
+void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWidth, unsigned wHeight, double genomeMult, unsigned widthPerState){
         stringstream ss;
         ss << "Turing Machine Genome: " << stateSymbolToConfig.size()-1 << " genes, " << fullSD.size() << " total nucleotides!";
-        drawShapeWithText(*window, ss.str(), window->getWidth()/2, window->getHeight() * 0.0125, window->getWidth(), window->getHeight() * 0.025);
-        int widdy = (int) window->getWidth()/stateSymbolToConfig.size();
+        drawShapeWithText(*window, ss.str(), halfWidth, wHeight * (genomeMult * 0.5), wWidth, wHeight * genomeMult);
         for (Configuration* c : configurations){
-            drawShapeWithText(*window, "Q" + std::to_string(1+c->index), widdy/2 + (c->index * (window->getWidth()/stateSymbolToConfig.size())), window->getHeight() * 0.0425, widdy, window->getHeight() * 0.035, true, c->color);
+            drawShapeWithText(*window, "Q" + to_string(1 + c->index), widthPerState/2 + (c->index * widthPerState), wHeight * (1.5 * genomeMult), widthPerState, wHeight * genomeMult, true, c->color);
             if (c == currentConfig){
-                drawShapeAroundText(*window, c->sd, widdy/2 + (c->index * (window->getWidth()/stateSymbolToConfig.size())), window->getHeight() * 0.0775, window->getHeight() * 0.035, c->color, 2);
+                drawShapeAroundText(*window, c->sdSig, widthPerState/2 + (c->index * widthPerState), wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
             }   
         }
     }
 
 void TuringMachine::drawWholeTape(Window* window){
+    int wid = (int)(window->getWidth()/tape->cellsInUse);
 
-//     void vizWholeTape(graphics::Window& window, const string& headColor){
-//         int wid = (int)(window.getWidth()/tape.cellsInUse);
+        // moving head:
+        string headthing;
+        int headX;
+        if (tape->getHead() < tape->cellsInUse) {
+            // Head is within the visible cells - show exact position
+            headthing = "HEAD ";
+            headX = (tape->getHead() + 0.5) * wid;
+        } else {
+            // Head is beyond visible cells - show arrow at right edge
+            headthing = "HEAD >> ";
+            headX = window->getWidth() - wid/2.0;
+        }
+        // min size
+        int cappedWid = std::max(wid, (int)(12 * headthing.size()));
+        graphics::drawShapeWithText(*window, headthing, headX, window->getHeight() * 0.8, cappedWid, window->getHeight() * 0.027, true, currentConfig->color);
 
-//         // moving head:
-//         string headthing;
-//         int headX;
-//         if (tape.getHead() < tape.cellsInUse) {
-//             // Head is within the visible cells - show exact position
-//             headthing = "HEAD ";
-//             headX = (tape.getHead() + 0.5) * wid;
-//         } else {
-//             // Head is beyond visible cells - show arrow at right edge
-//             headthing = "HEAD >> ";
-//             headX = window.getWidth() - wid/2.0;
-//         }
-//         // min size
-//         int cappedWid = std::max(wid, (int)(12 * headthing.size()));
-//         graphics::drawShapeWithText(window, headthing, headX, window.getHeight() * 0.8, cappedWid, window.getHeight() * 0.027, true, headColor);
+        for (unsigned i = 0; i < tape->cellsInUse; i++){
+            // config-stained view
+            window->setColor(tape->cellColors.at(i));
+            window->fillRect(i * wid, window->getHeight() * 0.825, wid, window->getHeight() * 0.05);
+            window->setColor(graphics::BLACK);
+            window->drawRect(i * wid, window->getHeight() * 0.825, wid, window->getHeight() * 0.05);
 
-//         for (unsigned i = 0; i < tape.cellsInUse; i++){
-//             // config-stained view
-//             window.setColor(tape.cellColors.at(i));
-//             window.fillRect(i * wid, window.getHeight() * 0.825, wid, window.getHeight() * 0.05);
-//             window.setColor(graphics::BLACK);
-//             window.drawRect(i * wid, window.getHeight() * 0.825, wid, window.getHeight() * 0.05);
+            // binary view
+            if (toStr.at(tape->readAt(i)) == '0'){
+                window->setColor(graphics::DARK_GRAY);
+            }
+            else if (toStr.at(tape->readAt(i)) == '1'){
+                window->setColor(graphics::BLACK);
+            }
+            else{
+                window->setColor(dullerColor(tape->cellColors.at(i)));
+            }
+            window->fillRect(i * wid, window->getHeight() * 0.875, wid, window->getHeight() * 0.05);
+            window->setColor(graphics::BLACK);
+            window->drawRect(i * wid, window->getHeight() * 0.875, wid, window->getHeight() * 0.05);
+        }
+    }
 
-//             // binary view
-//             if (toStr.at(tape.readAt(i)) == '0'){
-//                 window.setColor(graphics::DARK_GRAY);
-//             }
-//             else if (toStr.at(tape.readAt(i)) == '1'){
-//                 window.setColor(graphics::BLACK);
-//             }
-//             else{
-//                 window.setColor(dullerColor(tape.cellColors.at(i)));
-//             }
-//             window.fillRect(i * wid, window.getHeight() * 0.875, wid, window.getHeight() * 0.05);
-//             window.setColor(graphics::BLACK);
-//             window.drawRect(i * wid, window.getHeight() * 0.875, wid, window.getHeight() * 0.05);
-//         }
-//     }
-}
-
-void TuringMachine::drawBinding(Window* window){
-        float movePercent = .54;
+void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fromY, unsigned toY, unsigned widthPerState, unsigned halfWidth, unsigned genomeHeight){
         float iterPercent = timeSinceUpdate / (1.0 * stateRate);
-        // human signature
-        string currSig = currentConfig->signature;
-        // sd signature
-        string currGene = sdifySig(currentConfig);
         // iterPercent --> if over movePercent, then put it in final state
         double realP = iterPercent > movePercent ? 1.0 : iterPercent/movePercent;
 
         // vertical distance scaled by realP
-        int yAx = window->getHeight()/2 - (((window->getHeight()/2)-(window->getHeight() * 0.0425))*(1-realP));
+        int yAx = toY - ((toY - fromY) * (1 - realP));
+
         // horizontal is more complicated because we have midX, but same deal
-        int widdy = (int) window->getWidth()/stateSymbolToConfig.size();
-        int preXax = widdy/2 + (currentConfig->index * (window->getWidth()/stateSymbolToConfig.size()));
+        int preXax = widthPerState/2.0 + (currentConfig->index * (widthPerState));
         int xAx;
-        if (preXax >= window->getHeight()/2){
-            xAx = preXax - ((preXax - window->getHeight()/2) * realP);
+        if (preXax >= halfWidth){
+            xAx = preXax - ((preXax - halfWidth) * realP);
         }
         else{
-            xAx = preXax + ((window->getHeight()/2 - preXax) * realP);
+            xAx = preXax + ((halfWidth - preXax) * realP);
         }
 
         // signature
-        int widSig = graphics::widthOfTextBox(currGene, 6);
-        graphics::drawShapeAroundText(*window, currGene, xAx , yAx, window->getHeight() * 0.035, currentConfig->color, 6, 14, false);
+        int widSig = widthOfTextBox(currentConfig->sdSig, 6);
+        drawShapeAroundText(*window, currentConfig->sdSig, xAx , yAx, genomeHeight, currentConfig->color, 6, 14, false);
 
         // write symbol
-        int widWS = graphics::widthOfTextBox(sdifyWS(currentConfig), 3); // calc w padding
+        int widWS = widthOfTextBox(sdifyWS(currentConfig), 3); 
         //      3 padding x2      myself/2
         xAx += widSig/2.0 + widWS/2.0;
-        graphics::drawShapeAroundText(*window, sdifyWS(currentConfig), xAx, yAx, window->getHeight() * 0.035, currentConfig->color, 3, 14, false); // write without padding
+        drawShapeAroundText(*window, sdifyWS(currentConfig), xAx, yAx, genomeHeight, currentConfig->color, 3, 14, false); 
     
         // move direction
-        int widMV = graphics::widthOfTextBox(sdifyMV(currentConfig), 3);
+        int widMV = widthOfTextBox(sdifyMV(currentConfig), 3);
         xAx += widWS/2.0 + widMV/2.0;
-        graphics::drawShapeAroundText(*window, sdifyMV(currentConfig), xAx, yAx, window->getHeight() * 0.035, currentConfig->color, 3, 14, false);
+        drawShapeAroundText(*window, sdifyMV(currentConfig), xAx, yAx, genomeHeight, currentConfig->color, 3, 14, false);
 
         // next config
-        int widNC = graphics::widthOfTextBox(sdifyNC(currentConfig), 6);
+        int widNC = widthOfTextBox(sdifyNC(currentConfig), 6);
         xAx += widMV/2.0 + widNC/2.0;
-        graphics::drawShapeAroundText(*window, sdifyNC(currentConfig), xAx, yAx, window->getHeight() * 0.035, currentConfig->color, 6, 14, false);
+        drawShapeAroundText(*window, sdifyNC(currentConfig), xAx, yAx, genomeHeight, currentConfig->color, 6, 14, false);
     }
 
-
 void TuringMachine::draw(Window* window) {
+    unsigned WIDTH = window->getWidth();
+    unsigned H_WIDTH = WIDTH/2.0;
+    unsigned HEIGHT = window->getHeight();
+    unsigned H_HEIGHT = HEIGHT/2.0;
+    unsigned WIDTH_BY_STATES = WIDTH/stateSymbolToConfig.size();
+    unsigned WIDTH_BY_CONFIGS = WIDTH/configurations.size();
+    
+    double SMALL_BOX_HEIGHT = 0.1;
+    double MOVE_PERCENT = 0.54;
+    double SS_MULT = 1.25;
+    double GENOME_Y_MULT = 0.05;
+    double SQUARE_SIZE_MULT = 0.035;
+    double STAT_HEIGHT_MULT = 0.05;
+
+
     tape->draw(window, currentConfig);
 
-    drawRunStats(window);
-    drawGenome(window);
+    drawRunStats(window,
+        WIDTH,
+        H_WIDTH, 
+        HEIGHT, 
+        STAT_HEIGHT_MULT
+    );
+    drawGenome(window,
+        H_WIDTH,
+        WIDTH,
+        HEIGHT,
+        GENOME_Y_MULT,
+        WIDTH_BY_STATES
+    );
     drawWholeTape(window);
-    drawBinding(window);
+    drawBinding(window, 
+        MOVE_PERCENT, 
+        HEIGHT*GENOME_Y_MULT, 
+        0.5 * (HEIGHT - HEIGHT*SMALL_BOX_HEIGHT*SS_MULT - HEIGHT*SQUARE_SIZE_MULT),
+        WIDTH_BY_STATES,
+        H_WIDTH,
+        HEIGHT*SQUARE_SIZE_MULT
+    );
+
+    // SHOULD BE CONFIGURATION MEMBER FUNCTION TO DRAW TO WINDOW!!!
 
 }
 

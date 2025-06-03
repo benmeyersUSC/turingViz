@@ -25,18 +25,13 @@ void TuringMachineVisualization::run(){
     int xxx = 0;
     while (running && window->isOpen()){
         auto currentTime = std::chrono::high_resolution_clock::now();
-        long long delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
-
-        cout << delta << endl;
-              
+        long long delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();              
         running = update(delta);
         draw();
         lastTime = currentTime;
-        cout << "_" << endl;
         xxx++;
         if (xxx > 9000){running = false;}
     }
-    cout << "YEEEOOO" << endl;
     for (Configuration* conf : tm->getUnusedConfigs()){
         cout << conf->signature << endl;
     }
