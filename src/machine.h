@@ -18,13 +18,21 @@ using std::cerr;
 using helper::Configuration;
 using helper::Symbol;
 
+using graphics::Window;
+
 
 class TuringMachine{
     const unsigned MAX_TAPE = 999;
     private:
+    unsigned stateRate;
+    unsigned steps;
 
-    // vector<Configuration*> configurations;
+    unsigned timeSinceUpdate = std::numeric_limits<unsigned>::max();
+
     unordered_map<string, unordered_map<Symbol, Configuration*>*> stateSymbolToConfig;
+    unordered_set<Configuration*> configurations;
+    unordered_set<Configuration*> unusedConfig;
+
     Tape* tape;    
     unsigned sizeLimit;
 
@@ -38,15 +46,15 @@ class TuringMachine{
 
     public:
 
-    TuringMachine(Tape* tp);
+    TuringMachine(Tape* tp, unsigned stateRate);
 
     void addConfig(Configuration* config);
 
     ~TuringMachine();
 
-    static TuringMachine* fromStandardDescription(string description, Tape* tape);
+    static TuringMachine* fromStandardDescription(string description, Tape* tape, unsigned stateRate);
 
-    static TuringMachine* fromStandardDescription(fstream& file, Tape* tp);
+    static TuringMachine* fromStandardDescription(fstream& file, Tape* tp, unsigned stateRate);
 
     string sdifyQ(Configuration* conf);
 
@@ -70,5 +78,17 @@ class TuringMachine{
 
     bool update(unsigned loops);
 
-    void draw(graphics::Window* window);
+    void drawRunStats(Window* window);
+
+    void drawGenome(Window* window);
+
+    void drawWholeTape(Window* window);
+
+    void drawBinding(Window* window);
+
+    void draw(Window* window);
+
+    unsigned getStateRate();
+
+    unordered_set<Configuration*> getUnusedConfigs();
 };

@@ -1,13 +1,13 @@
 #include "viz.h"
 
-TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned msPerState) : stateRate(msPerState){
+TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned stateRate){
     window = new graphics::Window(1503, 819, "Turing Machine Visualization");
     Tape* tape = new Tape();
-    tm = TuringMachine::fromStandardDescription(file, tape);
+    tm = TuringMachine::fromStandardDescription(file, tape, stateRate);
 }
 
 bool TuringMachineVisualization::update(long long elapsed){
-    return tm->update(elapsed/stateRate);
+    return tm->update(elapsed);
 }
 
 void TuringMachineVisualization::draw(){
@@ -21,18 +21,23 @@ void TuringMachineVisualization::draw(){
 void TuringMachineVisualization::run(){
     bool running = true;
     auto lastTime = std::chrono::high_resolution_clock::now();
-    while (running){
+
+    int xxx = 0;
+    while (running && window->isOpen()){
         auto currentTime = std::chrono::high_resolution_clock::now();
         long long delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
 
         cout << delta << endl;
               
-        // running = update(delta);
+        running = update(delta);
         draw();
-        graphics::pause(stateRate);
-        running = false;
-
         lastTime = currentTime;
+        cout << "_" << endl;
+        xxx++;
+        if (xxx > 9000){running = false;}
     }
-    cout << "YOO" << endl;
+    cout << "YEEEOOO" << endl;
+    for (Configuration* conf : tm->getUnusedConfigs()){
+        cout << conf->signature << endl;
+    }
 }

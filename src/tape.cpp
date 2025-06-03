@@ -169,65 +169,65 @@ string Tape::toString(unsigned len, unsigned step) const {
     return ss.str();
 }
 
-void Tape::draw(graphics::Window* window, Configuration* config){
-    window->setColor(graphics::BLACK);
-    window->fillRect(200, 200, 100, 100);    
+void Tape::draw(graphics::Window* window, Configuration* config){  
+    unsigned x = window->getWidth()/2;
+    unsigned y = window->getHeight()/2;
 
-    // unsigned x = window.getWidth()/2;
-    // unsigned y = window.getHeight()/2;
-    // // square size
-    // unsigned dim = window.getHeight()/10;
-    // // multiplier for scanned square
-    // float mult = 1.25;
+    // square size
+    unsigned dim = window->getHeight()/10;
+    // multiplier for scanned square
+    float mult = 1.25;
 
-    // // squares on either side
-    // int flank = 1 + ((window.getWidth() - (dim*(mult + 4)))/2.0)/dim;
+    // squares on either side
+    int flank = 1 + ((window->getWidth() - (dim*(mult + 4)))/2.0)/dim;
 
-    // // current square
-    // graphics::drawShapeWithText(window, readStr(), x, y, dim*mult, dim*mult, true, cellColors.at(getHead()));
+    // current square
+    graphics::drawShapeWithText(*window, readStr(), x, y, dim*mult, dim*mult, true, cellColors.at(getHead()));
 
-    // // head      
-    // int sigWid = graphics::widthOfTextBox(config->sdSig, 3);
-    // graphics::drawShapeAroundText(window, config->sdSig, 
-    //     // y: - scann sq height - half my own height
-    //     x, y - (mult*dim*0.5) - window.getHeight() * 0.0175, window.getHeight() * 0.035, config->color, 3);
+    // head      
+    int sigWid = graphics::widthOfTextBox(config->sdSig, 3);
+    graphics::drawShapeAroundText(*window, config->sdSig, 
+        // y: - scann sq height - half my own height
+        x, y - (mult*dim*0.5) - window->getHeight() * 0.0175, window->getHeight() * 0.035, config->color, 3);
     
-    // // index-based signature       
-    // string indexBasedSig = "Q" + std::to_string(config->index) + "{'S" + std::to_string(symInd.at(config->readSymbol)) + "'} ";            
-    // int ibSigWid = graphics::widthOfTextBox(indexBasedSig, 0);                                                    
-    // graphics::drawShapeWithText(window, indexBasedSig, x, y - (mult*dim*0.5) - window.getHeight() * 0.05, std::max(ibSigWid, sigWid), window.getHeight() * 0.035, true, config->color);
+    // index-based signature       
+    string indexBasedSig = "Q" + std::to_string(config->index) + "{'S" + std::to_string(symInd.at(config->readSymbol)) + "'} ";            
+    int ibSigWid = graphics::widthOfTextBox(indexBasedSig, 0);                                                    
+    graphics::drawShapeWithText(*window, indexBasedSig, x, y - (mult*dim*0.5) - window->getHeight() * 0.05, 
+                std::max(ibSigWid, sigWid), window->getHeight() * 0.035, true, config->color);
     
-    // // human signature                                                                                    
-    // string humanSig = config->signature + " ";            
-    // int humSigWid = graphics::widthOfTextBox(humanSig, 0);                                                    
-    // graphics::drawShapeWithText(window, humanSig, x, y - (mult*dim*0.5) - window.getHeight() * 0.085, std::max(humSigWid, sigWid), window.getHeight() * 0.035, true, config->color);
+    // human signature                                                                                    
+    string humanSig = config->signature + " ";            
+    int humSigWid = graphics::widthOfTextBox(humanSig, 0);                                                    
+    graphics::drawShapeWithText(*window, humanSig, x, y - (mult*dim*0.5) - window->getHeight() * 0.085, 
+                std::max(humSigWid, sigWid), window->getHeight() * 0.035, true, config->color);
 
-    // // edges
-    // stringstream rs;
-    // stringstream ls;
-    // rs << "   ... << [" << getHead() - 1 << "]...";
-    // ls << "   ...[" << getSize() - getHead() << "] >> ...";
+    // edges
+    stringstream rs;
+    stringstream ls;
+    rs << "   ... << [" << getHead() - 1 << "]...";
+    ls << "   ...[" << getSize() - getHead() << "] >> ...";
 
-    // for (unsigned i = 0; i <= flank; i++){
-    //     if (i!= flank){
-    //         // actual squares, i to the right and left
-    //         graphics::drawShapeWithText(window, readStr(-i), 
-    //             x-((int)(dim*mult))-(dim*(std::max(0, int(i-1)))), 
-    //         y, dim, dim, true, cellColors.at(std::max((int)(getHead() - i), 0)));
+    for (unsigned i = 0; i <= flank; i++){
+        if (i!= flank){
+            // actual squares, i to the right and left
+            graphics::drawShapeWithText(*window, readStr(-i), 
+                x-((int)(dim*mult))-(dim*(std::max(0, int(i-1)))), 
+            y, dim, dim, true, cellColors.at(std::max((int)(getHead() - i), 0)));
 
-    //         graphics::drawShapeWithText(window, readStr(i), 
-    //             x+((int)(dim*mult))+(dim*(std::max(0, int(i-1)))), 
-    //         y, dim, dim, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
-    //         }
-    //     else{
-    //         // side messages
-    //         graphics::drawShapeWithText(window, rs.str(), 
-    //             dim,
-    //         y, dim*2, dim, true, cellColors.at(std::max((int)(getHead() - i), 0)));
+            graphics::drawShapeWithText(*window, readStr(i), 
+                x+((int)(dim*mult))+(dim*(std::max(0, int(i-1)))), 
+            y, dim, dim, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
+            }
+        else{
+            // side messages
+            graphics::drawShapeWithText(*window, rs.str(), 
+                dim,
+            y, dim*2, dim, true, cellColors.at(std::max((int)(getHead() - i), 0)));
 
-    //         graphics::drawShapeWithText(window, ls.str(), 
-    //             window.getWidth() - dim,
-    //         y, dim*2, dim, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
-    //     }
-    // }
+            graphics::drawShapeWithText(*window, ls.str(), 
+                window->getWidth() - dim,
+            y, dim*2, dim, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
+        }
+    }
 }

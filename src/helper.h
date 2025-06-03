@@ -12,7 +12,8 @@
 #include <ostream>
 
 #include "graphics.h"
-
+using graphics::drawShapeAroundText;
+using graphics::drawShapeWithText;
 
 using std::stringstream;
 using std::vector;

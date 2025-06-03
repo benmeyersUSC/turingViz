@@ -20,10 +20,8 @@ class TuringMachineVisualization{
         graphics::Window* window;
         TuringMachine* tm;
 
-        unsigned stateRate;
-
     public:
-        TuringMachineVisualization(fstream& file, unsigned msPerState = 1000);
+        TuringMachineVisualization(fstream& file, unsigned stateRate = 1000);
         bool update(long long elapsed);
         void draw();
         void run();
