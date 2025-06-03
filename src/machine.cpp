@@ -22,19 +22,11 @@ void TuringMachine::addConfig(Configuration* config){
         stateSymbolToConfig.emplace(config->name, func);
     }
     stateSymbolToConfig.at(config->name)->emplace(config->readSymbol, config);
-
-    config->sd = sdify(config);
-    config->sdSig = sdifySig(config);
-    config->sdNum = sdint(config);
-
-    standardDesctription.push_back(config->sd);
-    fullSD += config->sd;
-    sdSignatures.push_back(config->sdSig);
 }
 
 TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* tape){
     TuringMachine* utm = new TuringMachine(tape);
-
+    vector<Configuration*> confs;
     for (const string& line : split(description, ';')){
 
         string nLine = line;
@@ -75,11 +67,21 @@ TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* 
             }
 
             Configuration* config = new Configuration(idx, state, readSymbol, writeSymbol, direction, nextState);
+            confs.push_back(config);
             utm->addConfig(config);
         }
         catch(std::invalid_argument e){
             throw new std::invalid_argument("Invalid symbol!");
         }
+    }
+    for (Configuration* c : confs){
+        c->sd = utm->sdify(c);
+        c->sdSig = utm->sdifySig(c);
+        c->sdNum = utm->sdint(c);
+
+        utm->standardDesctription.push_back(c->sd);
+        utm->fullSD += c->sd;
+        utm->sdSignatures.push_back(c->sdSig);
     }
     return utm;
 }
@@ -193,8 +195,9 @@ string TuringMachine::sdint(const string& sd){
     return ss.str();
 }
 
-void TuringMachine::update(unsigned loops){
-    for (unsigned i = 0; i < loops; i++){
+bool TuringMachine::update(unsigned loops){
+    bool halt = false;
+    for (unsigned i = 0; i < loops && !halt; i++){
         // write new sym
         tape->write(currentConfig->writeSymbol);
         // if we're operating on a white cell, add it to seen cells
@@ -215,9 +218,11 @@ void TuringMachine::update(unsigned loops){
         // jump to next state
         currentState = currentConfig->nextState;
         currentConfig = stateSymbolToConfig.at(currentState)->at(tape->read());
+        halt = currentState == "HALT";
     }
+    return !halt;
 }
 
-void TuringMachine::draw(graphics::Window& window) {
+void TuringMachine::draw(graphics::Window* window) {
     tape->draw(window, currentConfig);
 }

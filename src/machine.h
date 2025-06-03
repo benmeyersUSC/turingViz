@@ -19,11 +19,11 @@ using helper::Configuration;
 using helper::Symbol;
 
 
-class TuringMachine : public Drawable{
+class TuringMachine{
     const unsigned MAX_TAPE = 999;
     private:
 
-    vector<Configuration*> configurations;
+    // vector<Configuration*> configurations;
     unordered_map<string, unordered_map<Symbol, Configuration*>*> stateSymbolToConfig;
     Tape* tape;    
     unsigned sizeLimit;
@@ -68,7 +68,7 @@ class TuringMachine : public Drawable{
 
     string sdint(const string& sd);
 
-    void update(unsigned loops);
+    bool update(unsigned loops);
 
-    void draw(graphics::Window& window) override;
+    void draw(graphics::Window* window);
 };

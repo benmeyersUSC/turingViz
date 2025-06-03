@@ -1,31 +1,38 @@
 #include "viz.h"
 
-TuringMachineVisualization::TuringMachineVisualization(){
+TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned msPerState) : stateRate(msPerState){
     window = new graphics::Window(1503, 819, "Turing Machine Visualization");
     Tape* tape = new Tape();
-    objs.emplace(tape);
-    tm = new TuringMachine(tape);
-    objs.emplace(tm);
+    tm = TuringMachine::fromStandardDescription(file, tape);
 }
 
-void TuringMachineVisualization::update(unsigned elapsed){
-    tm->update(elapsed/MS_PER_TM_UPDATE);
+bool TuringMachineVisualization::update(long long elapsed){
+    return tm->update(elapsed/stateRate);
 }
 
 void TuringMachineVisualization::draw(){
     window->clear();
-    for (Drawable* obj : objs){
-        obj->draw(*window);
-    }
+
+    tm->draw(window);
+
     window->update();
 }
 
 void TuringMachineVisualization::run(){
     bool running = true;
-    int lastTs;
+    auto lastTime = std::chrono::high_resolution_clock::now();
     while (running){
-        int ts;
-        update(ts-lastTs);
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        long long delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
+
+        cout << delta << endl;
+              
+        // running = update(delta);
         draw();
+        graphics::pause(stateRate);
+        running = false;
+
+        lastTime = currentTime;
     }
+    cout << "YOO" << endl;
 }

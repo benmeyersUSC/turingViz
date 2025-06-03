@@ -19,13 +19,12 @@ class TuringMachineVisualization{
     private:
         graphics::Window* window;
         TuringMachine* tm;
-        unordered_set<Drawable*> objs;
 
-        unsigned MS_PER_TM_UPDATE = 1000;
+        unsigned stateRate;
 
     public:
-        TuringMachineVisualization();
-        void update(unsigned elapsed);
+        TuringMachineVisualization(fstream& file, unsigned msPerState = 1000);
+        bool update(long long elapsed);
         void draw();
         void run();
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "drawable.h"
+#include "helper.h"
 
 using std::string;
 using std::ostream;
@@ -9,7 +9,7 @@ using helper::Symbol;
 using helper::Configuration;
 
 
-class Tape : public Drawable{
+class Tape{
 
     private:
     char* values;
@@ -50,5 +50,5 @@ class Tape : public Drawable{
 
     string toString(unsigned len, unsigned step) const ;
 
-    void draw(graphics::Window& window, Configuration* config);
+    void draw(graphics::Window* window, Configuration* config);
 };

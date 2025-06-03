@@ -69,7 +69,7 @@ public:
         color(FL_WHITE);
     }
 
-    void draw() override {
+    void draw() {
         Fl_Box::draw();
         fl_push_clip(x(), y(), w(), h());
         

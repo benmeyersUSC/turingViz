@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -9,6 +10,8 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+
+#include "graphics.h"
 
 
 using std::stringstream;
