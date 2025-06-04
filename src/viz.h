@@ -17,7 +17,7 @@ using std::cerr;
 
 class TuringMachineVisualization{
     private:
-        graphics::Window* window;
+        Window* window;
         TuringMachine* tm;
 
     public:

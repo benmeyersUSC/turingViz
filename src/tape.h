@@ -2,15 +2,14 @@
 
 #include "helper.h"
 
+using namespace helper;
+
 using std::string;
 using std::ostream;
 using std::unordered_map;
-using helper::Symbol;
-using helper::Configuration;
 
 
 class Tape{
-
     private:
     char* values;
     unsigned head;

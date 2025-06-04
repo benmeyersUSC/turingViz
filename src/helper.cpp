@@ -3,8 +3,7 @@
 using std::getline;
 
 namespace helper{
-    Configuration::Configuration(const unsigned idx, const string& nm, Symbol rd, const Symbol wt, const Direction d, string nxt):
-    index(idx),
+    Configuration::Configuration(const string& nm, Symbol rd, const Symbol wt, const Direction d, string nxt):
     name(nm),
     readSymbol(rd), 
     writeSymbol(wt), 
@@ -83,57 +82,37 @@ namespace helper{
         );
     }
 
-    string interpolateColor(const std::string& color1, const std::string& color2, double t) {
-        RGB c1(color1);
-        RGB c2(color2);
-        
-        int r = c1.r + (int)((c2.r - c1.r) * t);
-        int g = c1.g + (int)((c2.g - c1.g) * t);
-        int b = c1.b + (int)((c2.b - c1.b) * t);
-        
-        return rgbToHex(r, g, b);
+string percentageToColor(double t) {
+    // t is 0.0 to 1.0
+    // Simple HSV approach: vary hue from 0 (red) to 300 (magenta)
+    double hue = t * 300.0;
+    
+    // Convert to RGB using simplified HSV->RGB (S=1, V=1)
+    double h = hue / 60.0;
+    int hi = (int)h;
+    double f = h - hi;
+    
+    int r, g, b;
+    switch(hi) {
+        case 0: r = 255; g = (int)(255 * f); b = 0; break;        // Red to Yellow
+        case 1: r = (int)(255 * (1-f)); g = 255; b = 0; break;    // Yellow to Green
+        case 2: r = 0; g = 255; b = (int)(255 * f); break;        // Green to Cyan
+        case 3: r = 0; g = (int)(255 * (1-f)); b = 255; break;    // Cyan to Blue
+        case 4: r = (int)(255 * f); g = 0; b = 255; break;        // Blue to Magenta
+        default: r = 255; g = 0; b = 255; break;                   // Magenta
     }
+    
+    return rgbToHex(r, g, b);
+}
 
-    vector<string> generateColorSpectrum(int numConfigs){
-        vector<string> spectrum;
-        
-        // Define key colors for biological look
-        vector<string> keyColors = {
-            "#FF0000",  // Red
-            "#FF7F00",  // Orange  
-            "#FFFF00",  // Yellow
-            "#00FF00",  // Green
-            "#00FFFF",  // Cyan
-            "#0000FF",  // Blue
-            "#FF00FF"   // Magenta
-        };
-        
-        if (numConfigs <= keyColors.size()) {
-            // If few configs, just use the key colors
-            for (int i = 0; i < numConfigs; i++) {
-                spectrum.push_back(keyColors[i]);
-            }
-        } else {
-            // Interpolate between key colors
-            double segmentSize = (double)(numConfigs - 1) / (keyColors.size() - 1);
-            
-            for (int i = 0; i < numConfigs; i++) {
-                double position = i / segmentSize;
-                int colorIndex = (int)position;
-                double localT = position - colorIndex;
-                
-                if (colorIndex >= keyColors.size() - 1) {
-                    spectrum.push_back(keyColors.back());
-                } else {
-                    spectrum.push_back(interpolateColor(
-                        keyColors[colorIndex], 
-                        keyColors[colorIndex + 1], 
-                        localT
-                    ));
-                }
-            }
-        }
-        
-        return spectrum;
+vector<string> generateColorSpectrum(int numConfigs) {
+    vector<string> spectrum;
+    
+    for (int i = 0; i < numConfigs; i++) {
+        double percentage = (numConfigs == 1) ? 0.0 : (double)i / (numConfigs - 1);
+        spectrum.push_back(percentageToColor(percentage));
     }
+    
+    return spectrum;
+}
 }

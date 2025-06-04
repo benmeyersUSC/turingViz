@@ -1,17 +1,5 @@
 #include "/Users/benmeyers/Desktop/turingViz/src/machine.h"
 
-using helper::split;
-using helper::trim;
-using helper::toSym;
-using helper::Direction;
-using helper::symInd;
-using helper::RIGHT;
-using helper::LEFT;
-using helper::NONE;
-using helper::sdToNum;
-using helper::dullerColor;
-using helper::toStr;
-
 TuringMachine::TuringMachine(Tape* tp, unsigned msPerState): tape(tp), sizeLimit(999), stateRate(msPerState){}
 
 TuringMachine::~TuringMachine() {}
@@ -27,6 +15,7 @@ void TuringMachine::addConfig(Configuration* config){
 }
 
 TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* tape, unsigned msPerState){
+    vector<Configuration*> forColor;
     TuringMachine* utm = new TuringMachine(tape, msPerState);
 
     for (const string& line : split(description, ';')){
@@ -60,16 +49,7 @@ TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* 
             string nextState = parts[4];
             trim(nextState);
 
-            unsigned idx;
-            if (utm->stateSymbolToConfig.count(state) == 0){
-                int currSize = utm->stateSymbolToConfig.size();
-                idx = currSize;
-            }
-            else{
-                idx = utm->stateSymbolToConfig.at(state)->begin()->second->index;
-            }
-
-            Configuration* config = new Configuration(idx, state, readSymbol, writeSymbol, direction, nextState);
+            Configuration* config = new Configuration(state, readSymbol, writeSymbol, direction, nextState);
             utm->configurations.emplace(config);
             utm->addConfig(config);
         }
@@ -77,20 +57,30 @@ TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* 
             throw new std::invalid_argument("Invalid symbol!");
         }
     }
-    vector<string> colors = helper::generateColorSpectrum(utm->configurations.size());
-    for (Configuration* c : utm->configurations){
-        c->color = colors[c->index];
+    unsigned stateNum = 0;
+    unsigned confNum = 0;
+    vector<string> colors = generateColorSpectrum(utm->configurations.size());
 
-        c->sd = utm->sdify(c);
-        c->sdSig = utm->sdifySig(c);
-        c->sdWS = utm->sdifyWS(c);
-        c->sdMV = utm->sdifyMV(c);
-        c->sdNC = utm->sdifyNC(c);
-        c->sdNum = utm->sdint(c);
+    for (const auto& [k, v] : utm->stateSymbolToConfig){
+        for (const auto& [s, c] : *v){
+            c->color = colors[confNum];
+            c->stateIndex = stateNum;
+            c->confIndex = confNum;
 
-        utm->standardDesctription.push_back(c->sd);
-        utm->fullSD += c->sd;
-        utm->sdSignatures.push_back(c->sdSig);
+            c->sd = utm->sdify(c);
+            c->sdSig = utm->sdifySig(c);
+            c->sdWS = utm->sdifyWS(c);
+            c->sdMV = utm->sdifyMV(c);
+            c->sdNC = utm->sdifyNC(c);
+            c->sdNum = utm->sdint(c);
+
+            utm->standardDesctription.push_back(c->sd);
+            utm->fullSD += c->sd;
+            utm->sdSignatures.push_back(c->sdSig);
+
+            confNum++;
+        }
+        stateNum++;
     }
     return utm;
 }
@@ -124,7 +114,7 @@ TuringMachine* TuringMachine::fromStandardDescription(fstream& file, Tape* tp, u
 string TuringMachine::sdifyQ(Configuration* conf){
     stringstream ss;
     ss << 'D';
-    for (unsigned i = 0; i < conf->index; i++){
+    for (unsigned i = 0; i < conf->stateIndex; i++){
         ss << 'C';
     }
     return ss.str();
@@ -156,7 +146,7 @@ string TuringMachine::sdifyNC(Configuration* conf){
     unordered_map<Symbol, Configuration*>* nextFunc = stateSymbolToConfig.at(conf->nextState);
     stringstream ss;
     ss << 'D';
-    for (unsigned i = 0; i < nextFunc->begin()->second->index; i++){
+    for (unsigned i = 0; i < nextFunc->begin()->second->stateIndex; i++){
         ss << 'C';
     }
     return ss.str();
@@ -177,7 +167,7 @@ string TuringMachine::sdifyFunc(Configuration* conf){
 string TuringMachine::sdifySig(Configuration* conf){
     stringstream ss;
     ss << 'D';
-    for (unsigned i = 0; i < conf->index; i++){
+    for (unsigned i = 0; i < conf->stateIndex; i++){
         ss << 'C';
     }
     ss << 'D';
@@ -212,7 +202,7 @@ bool TuringMachine::update(unsigned elapsed){
     // write new sym
     tape->write(currentConfig->writeSymbol);
     // if we're operating on a white cell, add it to seen cells
-    if (tape->cellColors[tape->getHead()] == graphics::WHITE){
+    if (tape->cellColors[tape->getHead()] == LIGHT_GRAY){
         tape->incrCellsInUse();
     }
     // update config stain regardless
@@ -242,19 +232,19 @@ void TuringMachine::drawRunStats(Window* window, unsigned width, unsigned halfWi
     drawShapeWithText(*window, ss.str(), halfWidth, wHeight * (1.0 - (statSize * 0.5)), width, wHeight * statSize);
 }
 
-void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWidth, unsigned wHeight, double genomeMult, unsigned widthPerState){
+void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWidth, unsigned wHeight, double genomeMult, unsigned widthPerConfig){
         stringstream ss;
         ss << "Turing Machine Genome: " << stateSymbolToConfig.size()-1 << " genes, " << fullSD.size() << " total nucleotides!";
         drawShapeWithText(*window, ss.str(), halfWidth, wHeight * (genomeMult * 0.5), wWidth, wHeight * genomeMult);
         for (Configuration* c : configurations){
-            drawShapeWithText(*window, "Q" + to_string(1 + c->index), widthPerState/2 + (c->index * widthPerState), wHeight * (1.5 * genomeMult), widthPerState, wHeight * genomeMult, true, c->color);
+            drawShapeWithText(*window, "Q" + to_string(1 + c->stateIndex), widthPerConfig/2.0 + ((c->confIndex + 1) * widthPerConfig), wHeight * (1.5 * genomeMult), widthPerConfig, wHeight * genomeMult, true, c->color);
             if (c == currentConfig){
-                drawShapeAroundText(*window, c->sdSig, widthPerState/2 + (c->index * widthPerState), wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
+                drawShapeAroundText(*window, c->sdSig, widthPerConfig/2 + (c->confIndex * widthPerConfig), wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
             }   
         }
     }
 
-void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fromY, unsigned toY, unsigned widthPerState, unsigned halfWidth, unsigned genomeHeight){
+void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fromY, unsigned toY, unsigned widthPerConf, unsigned halfWidth, unsigned genomeHeight){
         // calculate coordinates based on time elapsed
 
         float iterPercent = timeSinceUpdate / (1.0 * stateRate);
@@ -265,7 +255,7 @@ void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fro
         int yAx = toY - (toY - fromY) * (1 - realP);
 
         // horizontal is more complicated because we have midX, but same deal
-        int preXax = widthPerState/2.0 + (currentConfig->index * (widthPerState));
+        int preXax = widthPerConf/2.0 + (currentConfig->confIndex * (widthPerConf));
         int xAx;
         if (preXax >= halfWidth){
             xAx = preXax - ((preXax - halfWidth) * realP);
@@ -310,13 +300,13 @@ void TuringMachine::draw(Window* window) {
         WIDTH,
         HEIGHT,
         GENOME_Y_MULT,
-        WIDTH_BY_STATES
+        WIDTH_BY_CONFIGS
     );
     drawBinding(window, 
         MOVE_PERCENT, 
-        HEIGHT*GENOME_Y_MULT, 
+        HEIGHT * GENOME_Y_MULT * 2.5, 
         0.5 * (HEIGHT - HEIGHT*SMALL_BOX_HEIGHT*SS_MULT - HEIGHT*SQUARE_SIZE_MULT),
-        WIDTH_BY_STATES,
+        WIDTH_BY_CONFIGS,
         H_WIDTH,
         HEIGHT*SQUARE_SIZE_MULT
     );

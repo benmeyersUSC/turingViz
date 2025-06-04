@@ -12,12 +12,8 @@
 #include <ostream>
 
 #include "graphics.h"
-using graphics::drawShapeAroundText;
-using graphics::drawShapeWithText;
-using graphics::widthOfTextBox;
-using graphics::Window;
-using graphics::BLACK;
-using graphics::DARK_GRAY;
+
+using namespace graphics;
 
 using std::stringstream;
 using std::to_string;
@@ -105,7 +101,8 @@ const unordered_map<char, unsigned> sdToNum = {
 };
 
 struct Configuration{
-    unsigned index;
+    unsigned stateIndex;
+    unsigned confIndex;
     string name;
     Symbol readSymbol;
     Symbol writeSymbol;
@@ -122,7 +119,7 @@ struct Configuration{
 
     string color;
 
-    Configuration(const unsigned idx, const string& nm, Symbol rd, const Symbol wt, const Direction d, string nxt);
+    Configuration(const string& nm, Symbol rd, const Symbol wt, const Direction d, string nxt);
 
     void draw(Window* window, unsigned x, unsigned y, unsigned height);
 };
@@ -145,8 +142,8 @@ string rgbToHex(int r, int g, int b);
 
 string dullerColor(const std::string& color, double factor = 0.09);
 
-string interpolateColor(const std::string& color1, const std::string& color2, double t);
-
 vector<string> generateColorSpectrum(int numConfigs);
+
+string percentageToColor(double t);
 
 }

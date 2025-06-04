@@ -5,7 +5,11 @@
 #include <functional>
 #include <exception>
 
+using std::string;
+
 namespace graphics {
+
+inline const string& DEFAULT_COLOR = "#CCCCCC";
 
 // Type of events we support
 enum class EventType {
@@ -166,7 +170,7 @@ std::string colorToHex(int r, int g, int b);
 void drawShapeWithText(Window& window, const std::string& text, 
     int centerX, int centerY, int width, int height, 
     bool isSquare = true, 
-    const std::string& fillColor = graphics::WHITE,
+    const std::string& fillColor = DEFAULT_COLOR,
     int txtSize = 14,
     const std::string& borderColor = graphics::BLACK,
     const std::string& textColor = graphics::BLACK);

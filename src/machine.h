@@ -15,12 +15,6 @@ using std::endl;
 using std::replace;
 using std::cerr;
 
-using helper::Configuration;
-using helper::Symbol;
-
-using graphics::Window;
-
-
 class TuringMachine{
     const unsigned MAX_TAPE = 999;
     private:

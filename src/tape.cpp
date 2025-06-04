@@ -1,17 +1,11 @@
 #include "tape.h"
 
-using helper::toStr;
-using helper::S_;
-using helper::toSym;
-using helper::symInd;
-using helper::dullerColor;
-
 unsigned Tape::getHead(){return head;}
 
 Tape::Tape() : head(0), size(54), values(new char[54]), tapeFill("S_") {
     for (unsigned i = 0; i < size; i++) {
         values[i] = toStr.at(S_);
-        cellColors[i] = graphics::WHITE;
+        cellColors[i] = DEFAULT_COLOR;
     }
 }
 
@@ -23,7 +17,7 @@ Tape::Tape(const Tape& other) : head(other.head), size(other.size), tapeFill(oth
     values = new char[size]; 
     for (unsigned i = 0; i < size; i++) {
         values[i] = other.values[i]; 
-        cellColors[i] = graphics::WHITE;
+        cellColors[i] = DEFAULT_COLOR;
     }
 }
 
@@ -77,7 +71,7 @@ void Tape::right(){
             }
             else{
                 newArr[i] = toStr.at(toSym.at(tapeFill));
-                cellColors[i] = graphics::WHITE;
+                cellColors[i] = DEFAULT_COLOR;
             }
         }
         delete[] values;
@@ -93,7 +87,7 @@ void Tape::left(){
         
         for (int i = 0; i < 10; i++){
             newArr[i] = toStr.at(toSym.at(tapeFill));
-            cellColors[i] = graphics::WHITE;
+            cellColors[i] = DEFAULT_COLOR;
         }
         
         for (unsigned i = 10; i < size; i++){
@@ -191,24 +185,24 @@ void Tape::draw(Window* window, Configuration* config){
     int flank = 1 + ((window->getWidth() - (dim*(mult + 4)))/2.0)/dim;
 
     // current square
-    graphics::drawShapeWithText(*window, readStr(), x, y, dim*mult, dim*mult, true, cellColors.at(getHead()));
+    drawShapeWithText(*window, readStr(), x, y, dim*mult, dim*mult, true, cellColors.at(getHead()));
 
     // head      
-    int sigWid = graphics::widthOfTextBox(config->sdSig, 3);
-    graphics::drawShapeAroundText(*window, config->sdSig, 
+    int sigWid = widthOfTextBox(config->sdSig, 3);
+    drawShapeAroundText(*window, config->sdSig, 
         // y: - scann sq height - half my own height
         x, y - (mult*dim*0.5) - window->getHeight() * 0.0175, window->getHeight() * 0.035, config->color, 3);
     
     // index-based signature       
-    string indexBasedSig = "Q" + std::to_string(config->index) + "{'S" + std::to_string(symInd.at(config->readSymbol)) + "'} ";            
-    int ibSigWid = graphics::widthOfTextBox(indexBasedSig, 0);                                                    
-    graphics::drawShapeWithText(*window, indexBasedSig, x, y - (mult*dim*0.5) - window->getHeight() * 0.05, 
+    string indexBasedSig = "Q" + std::to_string(config->stateIndex) + "{'S" + std::to_string(symInd.at(config->readSymbol)) + "'} ";            
+    int ibSigWid = widthOfTextBox(indexBasedSig, 0);                                                    
+    drawShapeWithText(*window, indexBasedSig, x, y - (mult*dim*0.5) - window->getHeight() * 0.05, 
                 std::max(ibSigWid, sigWid), window->getHeight() * 0.035, true, config->color);
     
     // human signature                                                                                    
     string humanSig = config->signature + " ";            
-    int humSigWid = graphics::widthOfTextBox(humanSig, 0);                                                    
-    graphics::drawShapeWithText(*window, humanSig, x, y - (mult*dim*0.5) - window->getHeight() * 0.085, 
+    int humSigWid = widthOfTextBox(humanSig, 0);                                                    
+    drawShapeWithText(*window, humanSig, x, y - (mult*dim*0.5) - window->getHeight() * 0.085, 
                 std::max(humSigWid, sigWid), window->getHeight() * 0.035, true, config->color);
 
     // edges
@@ -220,21 +214,21 @@ void Tape::draw(Window* window, Configuration* config){
     for (unsigned i = 0; i <= flank; i++){
         if (i!= flank){
             // actual squares, i to the right and left
-            graphics::drawShapeWithText(*window, readStr(-i), 
+            drawShapeWithText(*window, readStr(-i), 
                 x-((int)(dim*mult))-(dim*(std::max(0, int(i-1)))), 
             y, dim, dim, true, cellColors.at(std::max((int)(getHead() - i), 0)));
 
-            graphics::drawShapeWithText(*window, readStr(i), 
+            drawShapeWithText(*window, readStr(i), 
                 x+((int)(dim*mult))+(dim*(std::max(0, int(i-1)))), 
             y, dim, dim, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
             }
         else{
             // side messages
-            graphics::drawShapeWithText(*window, rs.str(), 
+            drawShapeWithText(*window, rs.str(), 
                 dim,
             y, dim*2, dim, true, cellColors.at(std::max((int)(getHead() - i), 0)));
 
-            graphics::drawShapeWithText(*window, ls.str(), 
+            drawShapeWithText(*window, ls.str(), 
                 window->getWidth() - dim,
             y, dim*2, dim, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
         }
@@ -258,24 +252,25 @@ void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, uns
     }
     // min size
     int cappedWid = max(wid, (unsigned)(12 * headthing.size()));
-    drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 3.75 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
+    drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5.25 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
 
     for (unsigned i = 0; i < cellsInUse; i++){
         // config-stained view
-        window->setColor(cellColors.at(i));
-        window->fillRect(i * wid, wHeight * (1.0 - 3.5*heightMult), wid, wHeight * heightMult);
+        window->setColor(dullerColor(cellColors.at(i), 0.75));
+        window->fillRect(i * wid, wHeight * (1.0 - 4.0*heightMult), wid, wHeight * heightMult);
         window->setColor(BLACK);
-        window->drawRect(i * wid, wHeight * (1.0 - 3.5*heightMult), wid, wHeight * heightMult);
+        window->drawRect(i * wid, wHeight * (1.0 - 4.0*heightMult), wid, wHeight * heightMult);
 
         // binary view
         if (toStr.at(readAt(i)) == '0'){
-            window->setColor(DARK_GRAY);
+            window->setColor(WHITE);
         }
         else if (toStr.at(readAt(i)) == '1'){
             window->setColor(BLACK);
         }
         else{
-            window->setColor(dullerColor(cellColors.at(i)));
+            // window->setColor(dullerColor(cellColors.at(i)));
+            window->setColor(LIGHT_GRAY);
         }
         window->fillRect(i * wid, wHeight * (1.0 - 2.5*heightMult), wid, wHeight * heightMult);
         window->setColor(BLACK);

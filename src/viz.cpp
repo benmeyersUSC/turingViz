@@ -1,7 +1,7 @@
 #include "viz.h"
 
 TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned stateRate){
-    window = new graphics::Window(1503, 819, "Turing Machine Visualization");
+    window = new Window(1503, 819, "Turing Machine Visualization");
     Tape* tape = new Tape();
     tm = TuringMachine::fromStandardDescription(file, tape, stateRate);
 }

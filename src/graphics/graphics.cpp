@@ -66,7 +66,8 @@ class DrawingArea : public Fl_Box {
 public:
     DrawingArea(int x, int y, int w, int h) : Fl_Box(x, y, w, h) {
         box(FL_FLAT_BOX);
-        color(FL_WHITE);
+        // color(FL_WHITE);
+        color(fl_rgb_color(204, 204, 204)); // LIGHT_GRAY
     }
 
     void draw() {
