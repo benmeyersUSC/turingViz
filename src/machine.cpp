@@ -1,4 +1,4 @@
-#include "/Users/benmeyers/Desktop/turingViz/src/machine.h"
+#include "machine.h"
 
 TuringMachine::TuringMachine(Tape* tp, unsigned msPerState): tape(tp), sizeLimit(999), stateRate(msPerState){}
 
@@ -237,7 +237,7 @@ void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWid
         ss << "Turing Machine Genome: " << stateSymbolToConfig.size()-1 << " genes, " << fullSD.size() << " total nucleotides!";
         drawShapeWithText(*window, ss.str(), halfWidth, wHeight * (genomeMult * 0.5), wWidth, wHeight * genomeMult);
         for (Configuration* c : configurations){
-            drawShapeWithText(*window, "Q" + to_string(1 + c->stateIndex), widthPerConfig/2.0 + ((c->confIndex + 1) * widthPerConfig), wHeight * (1.5 * genomeMult), widthPerConfig, wHeight * genomeMult, true, c->color);
+            drawShapeWithText(*window, "Q" + to_string(1 + c->stateIndex), (c->confIndex + 0.5) * widthPerConfig, wHeight * (1.5 * genomeMult), widthPerConfig, wHeight * genomeMult, true, c->color);
             if (c == currentConfig){
                 drawShapeAroundText(*window, c->sdSig, widthPerConfig/2 + (c->confIndex * widthPerConfig), wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
             }   
@@ -286,7 +286,7 @@ void TuringMachine::draw(Window* window) {
     double STAT_HEIGHT_MULT = 0.05;
 
 
-    tape->draw(window, currentConfig);
+    tape->draw(window, currentConfig, H_WIDTH, H_HEIGHT, WIDTH, HEIGHT, SS_MULT);
     tape->drawWhole(window, currentConfig, WIDTH, HEIGHT, STAT_HEIGHT_MULT);
 
     drawRunStats(window,
