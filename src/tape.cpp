@@ -172,8 +172,7 @@ string Tape::toString(unsigned len, unsigned step) const {
     return ss.str();
 }
 
-void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, unsigned wWidth, unsigned wHeight, double mult){  
-
+void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, unsigned wWidth, unsigned wHeight, double mult, double iterPercent, Direction lastMv){  
     // square size
     unsigned squareSize = wHeight/10.0;
 
@@ -182,17 +181,9 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
     drawShapeWithText(*window, "", x, y, squareSize*mult + squareSize/2.0, squareSize*mult*mult, true, BLACK);
 
     // squares on either side
-    // int flank = 1 + ((wWidth - (dim*(mult + 4)))/2.0)/dim;
     int flank = ((wWidth - (squareSize * mult)) / 2.0) / squareSize;
 
-    // current square
-    drawShapeWithText(*window, readStr(), x, y, squareSize*mult, squareSize*mult, true, cellColors.at(getHead()));
-
-    // head      
     int sigWid = widthOfTextBox(config->sdSig, 3);
-    drawShapeAroundText(*window, config->sdSig, 
-        // y: - scann sq height - half my own height
-        x, y - (mult*squareSize*0.5) - wHeight * 0.0175, wHeight * 0.035, config->color, 3);
     
     // index-based signature       
     string indexBasedSig = "Q" + to_string(config->stateIndex) + "{'S" + to_string(symInd.at(config->readSymbol)) + "'} ";            
@@ -211,6 +202,8 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
     stringstream ls;
     rs << "   ... << [" << getHead() - 1 << "]...";
     ls << "   ...[" << getSize() - getHead() << "] >> ...";
+
+    x = lastMv == LEFT ? x - (squareSize * (1.0 - iterPercent)) : lastMv == RIGHT ? x + (squareSize * (1.0 - iterPercent)) : x;
 
     for (unsigned i = 1; i <= flank; i++){
         if (i!= flank){
@@ -234,9 +227,22 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
             y, squareSize*2, squareSize, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
         }
     }
+
+    x = lastMv == LEFT ? x + (squareSize * (1.0 - iterPercent)) : lastMv == RIGHT ? x - (squareSize * (1.0 - iterPercent)) : x;
+
+    // current square
+    drawShapeWithText(*window, readStr(), x, y, squareSize*mult, squareSize*mult, true, cellColors.at(getHead()));
+    
+    // head      
+    drawShapeAroundText(*window, config->sdSig, 
+        // y: - scann sq height - half my own height
+        x, y - (mult*squareSize*0.5) - wHeight * 0.0175, wHeight * 0.035, config->color, 3);
+    
 }
 
-void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult){
+void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult, double iterPercent, Direction lastMv){
+    iterPercent = iterPercent > 0.54 ? 1.0 : iterPercent/0.54;
+    
     unsigned wid = wWidth/cellsInUse;
 
     // moving head:
@@ -253,12 +259,15 @@ void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, uns
     }
     // min size
     int cappedWid = max(wid, (unsigned)(12 * headthing.size()));
+    headX = lastMv == LEFT ? headX + (cappedWid * (1.0 - iterPercent)) : lastMv == RIGHT ? headX - (cappedWid * (1.0 - iterPercent)) : headX;
     drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5.25 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
 
     for (unsigned i = 0; i < cellsInUse; i++){
         // config-stained view
+    
         window->setColor(cellColors.at(i));
         window->fillRect(i * wid, wHeight * (1.0 - 4.0*heightMult), wid, wHeight * heightMult);
+        
         window->setColor(BLACK);
         window->drawRect(i * wid, wHeight * (1.0 - 4.0*heightMult), wid, wHeight * heightMult);
 
@@ -272,8 +281,11 @@ void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, uns
         else{
             window->setColor(LIGHT_GRAY);
         }
-        if (i == getHead()){window->setColor(config->color);}
+        if (i == getHead() && iterPercent >= 1.0){
+            window->setColor(config->color);
+        }
         window->fillRect(i * wid, wHeight * (1.0 - 2.5*heightMult), wid, wHeight * heightMult);
+        
         window->setColor(BLACK);
         window->drawRect(i * wid, wHeight * (1.0 - 2.5*heightMult), wid, wHeight * heightMult);
     }

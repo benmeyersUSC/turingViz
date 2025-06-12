@@ -54,7 +54,7 @@ class Tape{
 
     string toString(unsigned len, unsigned step) const ;
 
-    void draw(Window* window, Configuration* config, unsigned x, unsigned y, unsigned wWidth, unsigned wHeight, double mult);
+    void draw(Window* window, Configuration* config, unsigned x, unsigned y, unsigned wWidth, unsigned wHeight, double mult, double iterPercent, Direction lastMv);
 
-    void drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult);
+    void drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult, double iterPercent, Direction lastMv);
 };

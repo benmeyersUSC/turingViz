@@ -209,11 +209,14 @@ bool TuringMachine::update(unsigned elapsed){
     tape->cellColors[tape->getHead()] = currentConfig->color;
     
     // move
+    lastMove = NONE;
     if (currentConfig->direction == LEFT){
         tape->left();
+        lastMove = LEFT;
     }
     else if (currentConfig->direction == RIGHT){
         tape->right();
+        lastMove = RIGHT;
     }
 
     // jump to next state
@@ -247,9 +250,8 @@ void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWid
 void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fromY, unsigned toY, unsigned widthPerConf, unsigned halfWidth, unsigned genomeHeight){
         // calculate coordinates based on time elapsed
 
-        float iterPercent = timeSinceUpdate / (1.0 * stateRate);
         // iterPercent --> if over movePercent, then put it in final state
-        double realP = iterPercent > movePercent ? 1.0 : iterPercent/movePercent;
+        double realP = getIterPercent() > movePercent ? 1.0 : getIterPercent()/movePercent;
 
         // vertical distance scaled by realP
         int yAx = toY - (toY - fromY) * (1 - realP);
@@ -264,8 +266,6 @@ void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fro
             xAx = preXax + ((halfWidth - preXax) * realP);
         }
 
-
-    
         // draw protein!
         currentConfig->draw(window, xAx, yAx, genomeHeight);
     }
@@ -286,8 +286,8 @@ void TuringMachine::draw(Window* window) {
     double STAT_HEIGHT_MULT = 0.05;
 
 
-    tape->draw(window, currentConfig, H_WIDTH, H_HEIGHT, WIDTH, HEIGHT, SS_MULT);
-    tape->drawWhole(window, currentConfig, WIDTH, HEIGHT, STAT_HEIGHT_MULT);
+    tape->draw(window, currentConfig, H_WIDTH, H_HEIGHT, WIDTH, HEIGHT, SS_MULT, getIterPercent(), lastMove);
+    tape->drawWhole(window, currentConfig, WIDTH, HEIGHT, STAT_HEIGHT_MULT, getIterPercent(), lastMove);
 
     drawRunStats(window,
         WIDTH,
@@ -314,6 +314,10 @@ void TuringMachine::draw(Window* window) {
 
 unsigned TuringMachine::getStateRate(){
     return stateRate;
+}
+
+double TuringMachine::getIterPercent(){
+    return timeSinceUpdate / (1.0 * stateRate);
 }
 
 unordered_set<Configuration*> TuringMachine::getUnusedConfigs(){

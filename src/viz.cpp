@@ -15,7 +15,7 @@ void TuringMachineVisualization::draw(){
 
     tm->draw(window);
 
-    window->update();
+    window->update();               // graphics method, not our update()
 }
 
 void TuringMachineVisualization::run(){

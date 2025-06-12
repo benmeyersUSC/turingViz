@@ -23,6 +23,8 @@ class TuringMachine{
 
     unsigned timeSinceUpdate = std::numeric_limits<unsigned>::max();
 
+    Direction lastMove;
+
     unordered_map<string, unordered_map<Symbol, Configuration*>*> stateSymbolToConfig;
     unordered_set<Configuration*> configurations;
     unordered_set<Configuration*> unusedConfig;
@@ -39,6 +41,8 @@ class TuringMachine{
 
 
     public:
+
+    double getIterPercent();
 
     TuringMachine(Tape* tp, unsigned stateRate);
 
