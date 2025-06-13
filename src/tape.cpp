@@ -173,12 +173,13 @@ string Tape::toString(unsigned len, unsigned step) const {
 }
 
 void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, unsigned wWidth, unsigned wHeight, double mult, double iterPercent, Direction lastMv){  
+    iterPercent = iterPercent > 0.54 ? 1.0 : iterPercent/0.54;
+
     // square size
     unsigned squareSize = wHeight/10.0;
 
     // grayness
     drawShapeWithText(*window, "", x, y, wWidth, squareSize * mult * mult, true, DARK_GRAY);
-    drawShapeWithText(*window, "", x, y, squareSize*mult + squareSize/2.0, squareSize*mult*mult, true, BLACK);
 
     // squares on either side
     int flank = ((wWidth - (squareSize * mult)) / 2.0) / squareSize;
@@ -230,6 +231,8 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
 
     x = lastMv == LEFT ? x + (squareSize * (1.0 - iterPercent)) : lastMv == RIGHT ? x - (squareSize * (1.0 - iterPercent)) : x;
 
+    drawShapeWithText(*window, "", x, y, squareSize*mult + squareSize/2.0, squareSize*mult*mult, true, BLACK);
+
     // current square
     drawShapeWithText(*window, readStr(), x, y, squareSize*mult, squareSize*mult, true, cellColors.at(getHead()));
     
@@ -260,23 +263,27 @@ void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, uns
     // min size
     int cappedWid = max(wid, (unsigned)(12 * headthing.size()));
     headX = lastMv == LEFT ? headX + (cappedWid * (1.0 - iterPercent)) : lastMv == RIGHT ? headX - (cappedWid * (1.0 - iterPercent)) : headX;
-    drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5.25 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
+    drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
 
     for (unsigned i = 0; i < cellsInUse; i++){
         // config-stained view
-    
         window->setColor(cellColors.at(i));
         window->fillRect(i * wid, wHeight * (1.0 - 4.0*heightMult), wid, wHeight * heightMult);
         
         window->setColor(BLACK);
         window->drawRect(i * wid, wHeight * (1.0 - 4.0*heightMult), wid, wHeight * heightMult);
 
+        string stainViewTitle = "Tape Squares By Most Recent Configuration:";
+        double widthStainText = widthOfTextBox(stainViewTitle, 3) / 2.0;
+        drawShapeAroundText(*window, stainViewTitle, widthStainText, wHeight * (1.0 - 4.25*heightMult), wHeight*heightMult*0.5, DEFAULT_COLOR, 3, 14, true, DEFAULT_COLOR, BLACK);
+
+
         // binary view
         if (toStr.at(readAt(i)) == '0'){
-            window->setColor(BLACK);
+            window->setColor(WHITE);
         }
         else if (toStr.at(readAt(i)) == '1'){
-            window->setColor(WHITE);
+            window->setColor(BLACK);
         }
         else{
             window->setColor(LIGHT_GRAY);
@@ -285,8 +292,20 @@ void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, uns
             window->setColor(config->color);
         }
         window->fillRect(i * wid, wHeight * (1.0 - 2.5*heightMult), wid, wHeight * heightMult);
-        
+    
         window->setColor(BLACK);
         window->drawRect(i * wid, wHeight * (1.0 - 2.5*heightMult), wid, wHeight * heightMult);
+
+       
+        double width1 = widthOfTextBox("Computed Numbers:", 3) / 2.0;
+        int wordsX = width1;
+        drawShapeAroundText(*window, "Computed Numbers:", wordsX, wHeight * (1.0 - 2.75*heightMult), wHeight*heightMult*0.5, DEFAULT_COLOR, 0, 14, true, DEFAULT_COLOR);
+    
+        double width2 = widthOfTextBox("1s", 9) / 2.0;
+        wordsX += width1 + width2;
+        drawShapeAroundText(*window, "1", wordsX, wHeight * (1.0 - 2.75*heightMult), wHeight*heightMult*0.5, BLACK, 9, 14, true, DEFAULT_COLOR, WHITE);
+    
+        wordsX += 2 * width2;
+        drawShapeAroundText(*window, "0", wordsX, wHeight * (1.0 - 2.75*heightMult), wHeight*heightMult*0.5, WHITE, 9, 14, true, DEFAULT_COLOR, BLACK);
     }
 }
