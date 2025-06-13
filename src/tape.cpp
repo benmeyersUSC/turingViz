@@ -231,7 +231,7 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
 
     x = lastMv == LEFT ? x + (squareSize * (1.0 - iterPercent)) : lastMv == RIGHT ? x - (squareSize * (1.0 - iterPercent)) : x;
 
-    drawShapeWithText(*window, "", x, y, squareSize*mult + squareSize/2.0, squareSize*mult*mult, true, BLACK);
+    drawShapeWithText(*window, "", x, y, squareSize*mult + squareSize/2.0, squareSize*mult*mult, true, config->color);
 
     // current square
     drawShapeWithText(*window, readStr(), x, y, squareSize*mult, squareSize*mult, true, cellColors.at(getHead()));
