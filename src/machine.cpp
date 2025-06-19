@@ -296,7 +296,7 @@ void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fro
     }
 
 void TuringMachine::draw(Window* window) {
-    window->params.at("protein_mode") = currentConfig->confIndex % 2 == 2;
+    // window->params.at("protein_mode") = currentConfig->confIndex % 2 == 2;
 
     unsigned WIDTH = window->getWidth();
     unsigned H_WIDTH = WIDTH/2.0;
