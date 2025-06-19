@@ -1,4 +1,7 @@
 #include "viz.h"
+#include <cmath>
+#include <sstream>
+#include <iomanip>
 
 TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned stateRate){
     window = new Window(1503, 819, "Turing Machine Visualization");
@@ -6,6 +9,23 @@ TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned s
     
     Tape* tape = new Tape();
     tm = TuringMachine::fromStandardDescription(file, tape, stateRate);
+    
+    // Initialize slider state
+    draggingSlider = false;
+    sliderX = 50;
+    sliderY = window->getHeight() - 50;
+    sliderWidth = 300;
+    sliderHeight = 30;
+
+    buttonX = window->getWidth() - 180;
+    buttonY = 20;
+    buttonWidth = 160;
+    buttonHeight = 35;
+}
+
+bool TuringMachineVisualization::isPointInButton(int x, int y) {
+    return x >= buttonX && x <= buttonX + buttonWidth &&
+           y >= buttonY && y <= buttonY + buttonHeight;
 }
 
 bool TuringMachineVisualization::update(long long elapsed){
@@ -23,24 +43,80 @@ void TuringMachineVisualization::draw(){
 }
 
 void TuringMachineVisualization::drawUI() {
-    // Draw protein mode indicator
+    // Draw protein mode toggle button
     bool proteinMode = any_cast<bool>(window->params.at("protein_mode"));
     std::string modeText = proteinMode ? "Protein Mode: ON" : "Protein Mode: OFF";
     
-    // Position in top-right corner
-    int textWidth = widthOfTextBox(modeText, 10);
-    int x = window->getWidth() - textWidth/2 - 20;
-    int y = 30;
+    // Draw button background
+    window->setColor(proteinMode ? "#00AA00" : "#AA0000");
+    window->fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+    window->setColor(graphics::BLACK);
+    window->drawRect(buttonX, buttonY, buttonWidth, buttonHeight);
     
-    drawShapeAroundText(*window, modeText, x, y, 25, 
-                       proteinMode ? "#00AA00" : "#AA0000", 
-                       10, 14, true, graphics::BLACK, graphics::WHITE);
+    // Draw button text
+    window->setColor(graphics::WHITE);
+    window->drawLabel(modeText, buttonX + buttonWidth/2 - modeText.length() * 4, buttonY + buttonHeight/2 + 5);
     
-    // Draw instructions
-    std::string instructions = "Press 'P' to toggle Protein Mode";
-    int instrWidth = widthOfTextBox(instructions, 5);
-    drawShapeAroundText(*window, instructions, window->getWidth() - instrWidth/2 - 20, 60, 20, 
-                       graphics::LIGHT_GRAY, 5, 12, true, graphics::DARK_GRAY, graphics::BLACK);
+    // Draw speed slider
+    drawSpeedSlider();
+}
+
+void TuringMachineVisualization::drawSpeedSlider() {
+    // Draw slider background
+    window->setColor(graphics::DARK_GRAY);
+    window->fillRect(sliderX, sliderY, sliderWidth, sliderHeight);
+    window->setColor(graphics::BLACK);
+    window->drawRect(sliderX, sliderY, sliderWidth, sliderHeight);
+    
+    // Calculate slider position based on current speed
+    unsigned currentSpeed = tm->getStateRate();
+    // Map speed (1-3000) to position (0-1)
+    double normalized = (std::log(currentSpeed) - std::log(1.0)) / (std::log(3000.0) - std::log(1.0));
+    int knobX = sliderX + 10 + (sliderWidth - 20) * normalized;
+    
+    // Draw slider track
+    window->setColor(graphics::GRAY);
+    window->fillRect(sliderX + 10, sliderY + sliderHeight/2 - 2, sliderWidth - 20, 4);
+    
+    // Draw slider knob
+    window->setColor(draggingSlider ? graphics::ORANGE : graphics::BLUE);
+    window->fillCircle(knobX, sliderY + sliderHeight/2, 8);
+    window->setColor(graphics::BLACK);
+    window->drawCircle(knobX, sliderY + sliderHeight/2, 8);
+    
+    // Draw speed label
+    std::stringstream ss;
+    ss << "Speed: " << currentSpeed << " ms/state";
+    drawShapeAroundText(*window, ss.str(), sliderX + sliderWidth/2, sliderY - 20, 20, 
+                       graphics::WHITE, 5, 12, true, graphics::BLACK, graphics::BLACK);
+    
+    // Draw min/max labels
+    window->setColor(graphics::BLACK);
+    window->drawLabel("1ms", sliderX - 25, sliderY + sliderHeight/2 + 5);
+    window->drawLabel("3000ms", sliderX + sliderWidth + 5, sliderY + sliderHeight/2 + 5);
+}
+
+bool TuringMachineVisualization::isPointInSlider(int x, int y) {
+    // Check if point is within slider bounds (with some padding for easier clicking)
+    return x >= sliderX - 10 && x <= sliderX + sliderWidth + 10 &&
+           y >= sliderY - 10 && y <= sliderY + sliderHeight + 10;
+}
+
+void TuringMachineVisualization::updateSpeedFromMouse(int mouseX) {
+    // Clamp mouse position to slider bounds
+    int effectiveX = std::max(sliderX + 10, std::min(mouseX, sliderX + sliderWidth - 10));
+    
+    // Calculate normalized position (0-1)
+    double normalized = (double)(effectiveX - sliderX - 10) / (sliderWidth - 20);
+    
+    // Map to logarithmic scale (1-3000)
+    double logMin = std::log(1.0);
+    double logMax = std::log(3000.0);
+    double logValue = logMin + normalized * (logMax - logMin);
+    unsigned newSpeed = std::round(std::exp(logValue));
+    
+    // Update the state rate
+    tm->setStateRate(newSpeed);
 }
 
 void TuringMachineVisualization::processEvents() {
@@ -48,17 +124,52 @@ void TuringMachineVisualization::processEvents() {
         Event e = window->getEvent();
         
         if (e.Type == EventType::KeyDown) {
-            std::cout << "Key pressed: " << (char)e.Event.Key.Code << " (code: " << e.Event.Key.Code << ")" << std::endl;
-            
             // Check for 'p' or 'P' key press
             if (e.Event.Key.Code == 'p' || e.Event.Key.Code == 'P') {
                 // Toggle protein mode
                 bool currentMode = any_cast<bool>(window->params.at("protein_mode"));
                 window->params["protein_mode"] = !currentMode;
-                std::cout << "Toggled protein mode to: " << (!currentMode ? "ON" : "OFF") << std::endl;
+            }
+        }
+        // else if (e.Type == EventType::MouseBtnDown) {
+        //     if (e.Event.Mouse.Button == MouseButton::Left) {
+        //         if (isPointInSlider(e.Event.Mouse.X, e.Event.Mouse.Y)) {
+        //             draggingSlider = true;
+        //             updateSpeedFromMouse(e.Event.Mouse.X);
+        //         }
+        //         else if (draggingSlider) {
+        //             // Continue dragging even if mouse moves outside slider
+        //             updateSpeedFromMouse(e.Event.Mouse.X);
+        //         }
+        //     }
+        // }
+        else if (e.Type == EventType::MouseBtnDown) {
+            if (e.Event.Mouse.Button == MouseButton::Left) {
+                // Check button click
+                if (isPointInButton(e.Event.Mouse.X, e.Event.Mouse.Y)) {
+                    bool currentMode = any_cast<bool>(window->params.at("protein_mode"));
+                    window->params["protein_mode"] = !currentMode;
+                }
+                // Check slider
+                else if (isPointInSlider(e.Event.Mouse.X, e.Event.Mouse.Y)) {
+                    draggingSlider = true;
+                    updateSpeedFromMouse(e.Event.Mouse.X);
+                }
+                else if (draggingSlider) {
+                    // Continue dragging even if mouse moves outside slider
+                    updateSpeedFromMouse(e.Event.Mouse.X);
+                }
+            }
+        }
+        else if (e.Type == EventType::MouseBtnUp) {
+            if (e.Event.Mouse.Button == MouseButton::Left) {
+                draggingSlider = false;
             }
         }
     }
+    
+    // Handle mouse dragging (this needs to check current mouse position)
+    // For now, we'll handle drag on mouse down events
 }
 
 void TuringMachineVisualization::run(){
@@ -85,7 +196,6 @@ void TuringMachineVisualization::run(){
         cout << conf->signature << endl;
     }
 }
-
 
 
 

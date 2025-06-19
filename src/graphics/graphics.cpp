@@ -188,6 +188,15 @@ int DrawingArea::handle(int event) {
             windowImpl->addEvent(e);
             return 1;
         }
+        case FL_DRAG: {
+            Event e;
+            e.Type = EventType::MouseBtnDown; // Reuse this type for drag
+            e.Event.Mouse.Button = Fl::event_button();
+            e.Event.Mouse.X = Fl::event_x();
+            e.Event.Mouse.Y = Fl::event_y();
+            windowImpl->addEvent(e);
+            return 1;
+        }
         case FL_FOCUS:
         case FL_UNFOCUS:
             return 1;
@@ -531,8 +540,6 @@ void drawShapeAroundText(Window& window, const std::string& text,
 
 
 } // namespace graphics
-
-
 
 
 

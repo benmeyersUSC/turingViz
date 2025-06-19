@@ -42,6 +42,7 @@ class TuringMachine{
 
 
     public:
+    void setStateRate(unsigned rate) { stateRate = rate; }
 
     double getIterPercent();
 

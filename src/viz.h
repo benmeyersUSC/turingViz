@@ -1,6 +1,6 @@
 #pragma once
 
-// #include "graphics.h"
+#include "graphics.h"
 #include "machine.h"
 #include <fstream>
 #include <chrono>
@@ -10,11 +10,23 @@ using std::fstream;
 
 class TuringMachineVisualization {
 private:
+    int buttonX, buttonY, buttonWidth, buttonHeight;
+    bool isPointInButton(int x, int y);
     Window* window;
     TuringMachine* tm;
     
+    // Slider state
+    bool draggingSlider;
+    int sliderX;
+    int sliderY;
+    int sliderWidth;
+    int sliderHeight;
+    
     void drawUI();
     void processEvents();
+    void drawSpeedSlider();
+    bool isPointInSlider(int x, int y);
+    void updateSpeedFromMouse(int mouseX);
     
 public:
     TuringMachineVisualization(fstream& file, unsigned stateRate = 100);
@@ -22,8 +34,6 @@ public:
     void draw();
     void run();
 };
-
-
 
 
 
