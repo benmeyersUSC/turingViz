@@ -172,7 +172,9 @@ string Tape::toString(unsigned len, unsigned step) const {
     return ss.str();
 }
 
-void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, unsigned wWidth, unsigned wHeight, double mult, double iterPercent, Direction lastMv){  
+void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, unsigned wWidth, unsigned wHeight, double mult, double iterPercent){  
+    Direction lastMv = config->direction;
+    
     iterPercent = iterPercent > 0.54 ? 1.0 : iterPercent/0.54;
 
     // square size
@@ -192,12 +194,6 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
     drawShapeWithText(*window, indexBasedSig, x, y - (mult*squareSize*0.5) - wHeight * 0.05, 
                 std::max(ibSigWid, sigWid), wHeight * 0.035, true, config->color);
     
-    // human signature                                                                                    
-    string humanSig = config->signature + " ";            
-    int humSigWid = widthOfTextBox(humanSig, 0);                                                    
-    drawShapeWithText(*window, humanSig, x, y - (mult*squareSize*0.5) - wHeight * 0.085, 
-                std::max(humSigWid, sigWid), wHeight * 0.035, true, config->color);
-
     // edges
     stringstream rs;
     stringstream ls;
@@ -237,13 +233,15 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
     drawShapeWithText(*window, readStr(), x, y, squareSize*mult, squareSize*mult, true, cellColors.at(getHead()));
     
     // head      
-    drawShapeAroundText(*window, config->sdSig, 
+    string headDraw = any_cast<bool>(window->params.at("protein_mode")) ? config->sdSig : config->signature;
+    drawShapeAroundText(*window, headDraw, 
         // y: - scann sq height - half my own height
         x, y - (mult*squareSize*0.5) - wHeight * 0.0175, wHeight * 0.035, config->color, 3);
     
 }
 
-void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult, double iterPercent, Direction lastMv){
+void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult, double iterPercent){
+    Direction lastMv = config->direction;
     iterPercent = iterPercent > 0.54 ? 1.0 : iterPercent/0.54;
     
     unsigned wid = wWidth/cellsInUse;

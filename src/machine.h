@@ -6,6 +6,7 @@ using std::string;
 using std::stringstream;
 using std::vector;
 using std::unordered_set;
+using std::map;
 using std::unordered_map;
 using std::fstream;
 using std::ostream;
@@ -23,10 +24,10 @@ class TuringMachine{
 
     unsigned timeSinceUpdate = std::numeric_limits<unsigned>::max();
 
-    Direction lastMove;
+    Configuration* lastConfig;
 
-    unordered_map<string, unordered_map<Symbol, Configuration*>*> stateSymbolToConfig;
-    unordered_set<Configuration*> configurations;
+    map<string, unordered_map<Symbol, Configuration*>*> stateSymbolToConfig;
+    vector<Configuration*> configurations;
     unordered_set<Configuration*> unusedConfig;
 
     Tape* tape;    

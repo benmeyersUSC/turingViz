@@ -537,6 +537,7 @@ void drawShapeAroundText(Window& window, const std::string& text,
     int textX = centerX - textWidth / 2;
     int textY = centerY + height / 9; // baseline adjustment
     window.drawLabel(text, textX, textY);
+    fl_font(FL_HELVETICA, 14);
 }
 
 

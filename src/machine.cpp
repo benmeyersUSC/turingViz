@@ -50,7 +50,7 @@ TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* 
             trim(nextState);
 
             Configuration* config = new Configuration(state, readSymbol, writeSymbol, direction, nextState);
-            utm->configurations.emplace(config);
+            // utm->configurations.emplace(config);
             utm->addConfig(config);
         }
         catch(std::invalid_argument e){
@@ -59,11 +59,12 @@ TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* 
     }
     unsigned stateNum = 0;
     unsigned confNum = 0;
-    vector<string> colors = generateColorSpectrum(utm->configurations.size());
+    // vector<string> colors = generateColorSpectrum(utm->configurations.size());
+    // vector<string> colors = generateColorSpectrum(utm->stateSymbolToConfig.size());
 
     for (const auto& [k, v] : utm->stateSymbolToConfig){
         for (const auto& [s, c] : *v){
-            c->color = colors[confNum];
+            utm->configurations.push_back(c);
             c->stateIndex = stateNum;
             c->confIndex = confNum;
 
@@ -82,6 +83,17 @@ TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* 
         }
         stateNum++;
     }
+    vector<string> colors = generateColorSpectrum(utm->configurations, utm->stateSymbolToConfig);
+    confNum = 0;
+    stateNum = 0;
+    for (const auto& [k, v] : utm->stateSymbolToConfig){
+        for (const auto& [s, c] : *v){
+            c->color = colors[confNum];
+            confNum++;
+        }
+        stateNum++;
+    }
+
     return utm;
 }
 
@@ -209,17 +221,18 @@ bool TuringMachine::update(unsigned elapsed){
     tape->cellColors[tape->getHead()] = currentConfig->color;
     
     // move
-    lastMove = NONE;
+    // lastMove = NONE;
     if (currentConfig->direction == LEFT){
         tape->left();
-        lastMove = LEFT;
+        // lastMove = LEFT;
     }
     else if (currentConfig->direction == RIGHT){
         tape->right();
-        lastMove = RIGHT;
+        // lastMove = RIGHT;
     }
 
     // jump to next state
+    lastConfig = currentConfig;
     currentState = currentConfig->nextState;
     currentConfig = stateSymbolToConfig.at(currentState)->at(tape->read());
     unusedConfig.erase(currentConfig);
@@ -240,9 +253,21 @@ void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWid
         ss << "Turing Machine Genome: " << stateSymbolToConfig.size()-1 << " genes, " << fullSD.size() << " total nucleotides!";
         drawShapeWithText(*window, ss.str(), halfWidth, wHeight * (genomeMult * 0.5), wWidth, wHeight * genomeMult);
         for (Configuration* c : configurations){
+            double realP = getIterPercent() > 0.54 ? 1.0 : getIterPercent() / 0.54;
+            
             drawShapeWithText(*window, "Q" + to_string(1 + c->stateIndex), (c->confIndex + 0.5) * widthPerConfig, wHeight * (1.5 * genomeMult), widthPerConfig, wHeight * genomeMult, true, c->color);
             if (c == currentConfig){
-                drawShapeAroundText(*window, c->sdSig, widthPerConfig/2 + (c->confIndex * widthPerConfig), wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
+                unsigned oldX = widthPerConfig/2 + (lastConfig->confIndex * widthPerConfig);
+                unsigned newX = widthPerConfig/2 + (c->confIndex * widthPerConfig);
+                unsigned x;
+                if (newX > oldX){
+                    x = oldX + (realP * (newX - oldX));
+                }
+                else{
+                    x = oldX - (realP * (oldX - newX));
+                }
+                string drawee = any_cast<bool>(window->params.at("protein_mode")) ? c->sdSig : c->signature;
+                drawShapeAroundText(*window, drawee, x, wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
             }   
         }
     }
@@ -267,10 +292,12 @@ void TuringMachine::drawBinding(Window* window, double movePercent, unsigned fro
         }
 
         // draw protein!
-        currentConfig->draw(window, xAx, yAx, genomeHeight);
+        currentConfig->draw(window, xAx, yAx, genomeHeight, getIterPercent());
     }
 
 void TuringMachine::draw(Window* window) {
+    window->params.at("protein_mode") = currentConfig->confIndex % 2 == 2;
+
     unsigned WIDTH = window->getWidth();
     unsigned H_WIDTH = WIDTH/2.0;
     unsigned HEIGHT = window->getHeight();
@@ -279,15 +306,15 @@ void TuringMachine::draw(Window* window) {
     unsigned WIDTH_BY_CONFIGS = WIDTH/configurations.size();
     
     double SMALL_BOX_HEIGHT = 0.1;
-    double MOVE_PERCENT = 0.54;
+    double MOVE_PERCENT = 0.27;
     double SS_MULT = 1.25;
     double GENOME_Y_MULT = 0.05;
     double SQUARE_SIZE_MULT = 0.035;
     double STAT_HEIGHT_MULT = 0.05;
 
 
-    tape->draw(window, currentConfig, H_WIDTH, H_HEIGHT, WIDTH, HEIGHT, SS_MULT, getIterPercent(), lastMove);
-    tape->drawWhole(window, currentConfig, WIDTH, HEIGHT, STAT_HEIGHT_MULT, getIterPercent(), lastMove);
+    tape->draw(window, currentConfig, H_WIDTH, H_HEIGHT, WIDTH, HEIGHT, SS_MULT, getIterPercent());
+    tape->drawWhole(window, currentConfig, WIDTH, HEIGHT, STAT_HEIGHT_MULT, getIterPercent());
 
     drawRunStats(window,
         WIDTH,

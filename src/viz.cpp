@@ -2,6 +2,7 @@
 
 TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned stateRate){
     window = new Window(1503, 819, "Turing Machine Visualization");
+    window->params.emplace("protein_mode", true);
     Tape* tape = new Tape();
     tm = TuringMachine::fromStandardDescription(file, tape, stateRate);
 }

@@ -10,12 +10,16 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+#include <map>
+
 
 #include "graphics.h"
 
 using namespace graphics;
 
 using std::stringstream;
+using std::map;
+
 using std::to_string;
 using std::vector;
 using std::string;
@@ -119,9 +123,11 @@ struct Configuration{
 
     string color;
 
+    Configuration();
+
     Configuration(const string& nm, Symbol rd, const Symbol wt, const Direction d, string nxt);
 
-    void draw(Window* window, unsigned x, unsigned y, unsigned height);
+    void draw(Window* window, unsigned x, unsigned y, unsigned height, double mvP);
 };
 
 
@@ -142,7 +148,7 @@ string rgbToHex(int r, int g, int b);
 
 string dullerColor(const std::string& color, double factor = 0.09);
 
-vector<string> generateColorSpectrum(int numConfigs);
+vector<string> generateColorSpectrum(vector<Configuration*>, map<string, unordered_map<Symbol, Configuration*>*> ssc);
 
 string percentageToColor(double t);
 

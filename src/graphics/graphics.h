@@ -4,8 +4,13 @@
 #include <memory>
 #include <functional>
 #include <exception>
+#include <unordered_map>
+#include <any>
 
 using std::string;
+using std::any;
+using std::any_cast;
+using std::unordered_map;
 
 namespace graphics {
 
@@ -141,6 +146,9 @@ public:
     struct Event getEvent();
     void update();
     bool isOpen() const;
+
+    unordered_map<string, any> params;
+
 private:
     std::unique_ptr<WindowImpl> mImpl;
 };
