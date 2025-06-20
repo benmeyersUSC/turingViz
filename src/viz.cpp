@@ -12,15 +12,16 @@ TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned s
     
     // Initialize slider state
     draggingSlider = false;
-    sliderX = 50;
-    sliderY = window->getHeight() - 50;
-    sliderWidth = 300;
-    sliderHeight = 30;
+        sliderHeight = 30;
 
-    buttonX = window->getWidth() - 180;
-    buttonY = 20;
+    sliderWidth = 300;
+    sliderX = window->getWidth() * 0.75 - sliderWidth/2.0;
+    sliderY = window->getHeight() - sliderHeight;
+
     buttonWidth = 160;
+    buttonX = window->getWidth()*0.25 - buttonWidth*0.5;
     buttonHeight = 35;
+    buttonY = window->getHeight() - buttonHeight*1.1;
 }
 
 bool TuringMachineVisualization::isPointInButton(int x, int y) {
@@ -76,7 +77,7 @@ void TuringMachineVisualization::drawSpeedSlider() {
     
     // Draw slider track
     window->setColor(graphics::GRAY);
-    window->fillRect(sliderX + 10, sliderY + sliderHeight/2 - 2, sliderWidth - 20, 4);
+    window->fillRect(sliderX + 10, sliderY + sliderHeight/2, sliderWidth - 20, 4);
     
     // Draw slider knob
     window->setColor(draggingSlider ? graphics::ORANGE : graphics::BLUE);
@@ -86,14 +87,10 @@ void TuringMachineVisualization::drawSpeedSlider() {
     
     // Draw speed label
     std::stringstream ss;
-    ss << "Speed: " << currentSpeed << " ms/state";
-    drawShapeAroundText(*window, ss.str(), sliderX + sliderWidth/2, sliderY - 20, 20, 
-                       graphics::WHITE, 5, 12, true, graphics::BLACK, graphics::BLACK);
-    
-    // Draw min/max labels
-    window->setColor(graphics::BLACK);
-    window->drawLabel("1ms", sliderX - 25, sliderY + sliderHeight/2 + 5);
-    window->drawLabel("3000ms", sliderX + sliderWidth + 5, sliderY + sliderHeight/2 + 5);
+    ss << 1000.0/currentSpeed << " states/second";
+    drawShapeAroundText(*window, ss.str(), sliderX + sliderWidth/2.0 + widthOfTextBox(ss.str(), 27, 12) * 1.5, sliderY + sliderHeight/2, 20, 
+                       graphics::WHITE, 27, 12, true, graphics::BLACK, graphics::BLACK);
+                       
 }
 
 bool TuringMachineVisualization::isPointInSlider(int x, int y) {
@@ -131,18 +128,6 @@ void TuringMachineVisualization::processEvents() {
                 window->params["protein_mode"] = !currentMode;
             }
         }
-        // else if (e.Type == EventType::MouseBtnDown) {
-        //     if (e.Event.Mouse.Button == MouseButton::Left) {
-        //         if (isPointInSlider(e.Event.Mouse.X, e.Event.Mouse.Y)) {
-        //             draggingSlider = true;
-        //             updateSpeedFromMouse(e.Event.Mouse.X);
-        //         }
-        //         else if (draggingSlider) {
-        //             // Continue dragging even if mouse moves outside slider
-        //             updateSpeedFromMouse(e.Event.Mouse.X);
-        //         }
-        //     }
-        // }
         else if (e.Type == EventType::MouseBtnDown) {
             if (e.Event.Mouse.Button == MouseButton::Left) {
                 // Check button click
@@ -196,62 +181,3 @@ void TuringMachineVisualization::run(){
         cout << conf->signature << endl;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// #include "viz.h"
-
-// TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned stateRate){
-//     window = new Window(1503, 819, "Turing Machine Visualization");
-//     window->params.emplace("protein_mode", true);
-//     Tape* tape = new Tape();
-//     tm = TuringMachine::fromStandardDescription(file, tape, stateRate);
-// }
-
-// bool TuringMachineVisualization::update(long long elapsed){
-//     return tm->update(elapsed);
-// }
-
-// void TuringMachineVisualization::draw(){
-//     window->clear();
-
-//     tm->draw(window);
-
-//     window->update();               // graphics method, not our update()
-// }
-
-// void TuringMachineVisualization::run(){
-//     bool running = true;
-//     auto lastTime = std::chrono::high_resolution_clock::now();
-
-//     int xxx = 0;
-//     while (running && window->isOpen()){
-//         auto currentTime = std::chrono::high_resolution_clock::now();
-//         long long delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();              
-//         running = update(delta);
-//         draw();
-//         lastTime = currentTime;
-//         xxx++;
-//         if (xxx > 9000){running = false;}
-//     }
-//     for (Configuration* conf : tm->getUnusedConfigs()){
-//         cout << conf->signature << endl;
-//     }
-// }

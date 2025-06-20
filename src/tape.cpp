@@ -241,27 +241,59 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
 }
 
 void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, unsigned wHeight, double heightMult, double iterPercent){
-    Direction lastMv = config->direction;
     iterPercent = iterPercent > 0.54 ? 1.0 : iterPercent/0.54;
     
     unsigned wid = wWidth/cellsInUse;
 
     // moving head:
-    string headthing;
-    int headX;
-    if (getHead() < cellsInUse) {
-        // Head is within the visible cells - show exact position
-        headthing = "HEAD ";
-        headX = (getHead() + 0.5) * wid;
+string headthing;
+int headX, prevHeadX;
+if (getHead() < cellsInUse) {
+    // Head is within the visible cells - show exact position
+    headthing = "HEAD ";
+    headX = (getHead() + 0.5) * wid;
+    
+    // Calculate previous position
+    if (lastMv == LEFT && getHead() + 1 < cellsInUse) {
+        prevHeadX = (getHead() + 1.5) * wid;
+    } else if (lastMv == RIGHT && getHead() > 0) {
+        prevHeadX = (getHead() - 0.5) * wid;
     } else {
-        // Head is beyond visible cells - show arrow at right edge
-        headthing = "HEAD >> ";
-        headX = wWidth - wid/2.0;
+        prevHeadX = headX; // No movement or at boundary
     }
-    // min size
-    int cappedWid = max(wid, (unsigned)(12 * headthing.size()));
-    headX = lastMv == LEFT ? headX + (cappedWid * (1.0 - iterPercent)) : lastMv == RIGHT ? headX - (cappedWid * (1.0 - iterPercent)) : headX;
-    drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
+} else {
+    // Head is beyond visible cells - show arrow at right edge
+    headthing = "HEAD >> ";
+    headX = wWidth - wid/2.0;
+    prevHeadX = headX; // No animation when off-screen
+}
+
+// min size
+int cappedWid = max(wid, (unsigned)(12 * headthing.size()));
+
+// Animate from previous position to current position
+if (iterPercent < 1.0 && prevHeadX != headX) {
+    headX = prevHeadX + (headX - prevHeadX) * iterPercent;
+}
+
+drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
+
+    // // moving head:
+    // string headthing;
+    // int headX;
+    // if (getHead() < cellsInUse) {
+    //     // Head is within the visible cells - show exact position
+    //     headthing = "HEAD ";
+    //     headX = (getHead() + 0.5) * wid;
+    // } else {
+    //     // Head is beyond visible cells - show arrow at right edge
+    //     headthing = "HEAD >> ";
+    //     headX = wWidth - wid/2.0;
+    // }
+    // // min size
+    // int cappedWid = max(wid, (unsigned)(12 * headthing.size()));
+    // headX = lastMv == LEFT ? headX + (cappedWid * (1.0 - iterPercent)) : lastMv == RIGHT ? headX - (cappedWid * (1.0 - iterPercent)) : headX;
+    // drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5 * heightMult), cappedWid, wHeight * heightMult * 0.5, true, config->color);
 
     for (unsigned i = 0; i < cellsInUse; i++){
         // config-stained view
@@ -306,4 +338,8 @@ void Tape::drawWhole(Window* window, Configuration* config, unsigned wWidth, uns
         wordsX += 2 * width2;
         drawShapeAroundText(*window, "0", wordsX, wHeight * (1.0 - 2.75*heightMult), wHeight*heightMult*0.5, WHITE, 9, 14, true, DEFAULT_COLOR, BLACK);
     }
+}
+
+void Tape::setLastMv(Direction d){
+    lastMv = d;
 }

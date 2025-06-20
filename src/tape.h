@@ -11,6 +11,7 @@ using std::unordered_map;
 
 class Tape{
     private:
+    Direction lastMv;
     char* values;
     unsigned head;
     unsigned size;
@@ -21,7 +22,7 @@ class Tape{
     public:
     unordered_map<unsigned, string> cellColors;
 
-
+    void setLastMv(Direction d);
     unsigned getHead();
     
     Tape();

@@ -224,12 +224,12 @@ bool TuringMachine::update(unsigned elapsed){
     // lastMove = NONE;
     if (currentConfig->direction == LEFT){
         tape->left();
-        // lastMove = LEFT;
+
     }
     else if (currentConfig->direction == RIGHT){
         tape->right();
-        // lastMove = RIGHT;
     }
+    tape->setLastMv(currentConfig->direction);
 
     // jump to next state
     lastConfig = currentConfig;
