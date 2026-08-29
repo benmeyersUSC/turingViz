@@ -15,6 +15,7 @@
 #include "graphics.h"
 #include <emscripten/emscripten.h>
 #include <algorithm>
+#include <vector>
 #include <deque>
 #include <string>
 #include <unordered_map>
@@ -55,6 +56,96 @@ const std::string &resolveColor(const std::string &c) {
 // Called by the exported C entry points below; keeps the queue itself private.
 void pushEvent(const Event &e) { g_events.push_back(e); }
 
+// ---- batched drawing ----
+// Every draw used to be its own EM_ASM call. At a few hundred shapes a frame
+// that is thousands of wasm->JS crossings per second, each marshalling a
+// string for the colour, which made the page crawl. Instead we append ops to
+// a flat buffer and hand the whole frame to JS in a single call.
+namespace {
+
+enum Op : int {
+    OP_CLEAR = 0, OP_COLOR = 1, OP_FILLRECT = 2, OP_STROKERECT = 3,
+    OP_FILLELLIPSE = 4, OP_STROKEELLIPSE = 5, OP_FILLCIRCLE = 6,
+    OP_STROKECIRCLE = 7, OP_LINE = 8, OP_TEXT = 9, OP_FONT = 10,
+};
+
+std::vector<float>       g_ops;
+std::vector<std::string> g_strs;
+std::unordered_map<std::string, int> g_strIds;
+
+int intern(const std::string &s) {
+    const auto it = g_strIds.find(s);
+    if (it != g_strIds.end()) return it->second;
+    const int id = static_cast<int>(g_strs.size());
+    g_strs.push_back(s);
+    g_strIds.emplace(s, id);
+    return id;
+}
+
+template<typename... A>
+void push(Op op, A... args) {
+    g_ops.push_back(static_cast<float>(op));
+    (g_ops.push_back(static_cast<float>(args)), ...);
+}
+
+// measureText is the one call that must be answered synchronously. Memoise it:
+// the same handful of labels and sizes recur every frame.
+std::unordered_map<std::string, int> g_measure;
+
+int measureCached(const std::string &text, int px) {
+    const std::string key = std::to_string(px) + ":" + text;
+    const auto it = g_measure.find(key);
+    if (it != g_measure.end()) return it->second;
+    const int w = EM_ASM_INT({
+        const t = window.__tvctx;
+        const prev = t.font;
+        t.font = $1 + 'px Helvetica, Arial, sans-serif';
+        const w = Math.round(t.measureText(UTF8ToString($0)).width);
+        t.font = prev;
+        return w;
+    }, text.c_str(), px);
+    g_measure.emplace(key, w);
+    return w;
+}
+
+} // namespace
+
+// Hand one frame's worth of ops to JS in a single crossing.
+void flushFrame() {
+    if (g_ops.empty()) return;
+    std::string joined;
+    for (size_t i = 0; i < g_strs.size(); ++i) {
+        if (i) joined += '\n';
+        joined += g_strs[i];
+    }
+    EM_ASM({
+        const ops = new Float32Array(HEAPF32.buffer, $0, $1);
+        const strs = UTF8ToString($2).split('\n');
+        const t = window.__tvctx;
+        let i = 0;
+        while (i < ops.length) {
+            switch (ops[i++]) {
+                case 0: t.clearRect(0, 0, $3, $4); break;
+                case 1: { const c = strs[ops[i++]]; t.fillStyle = c; t.strokeStyle = c; break; }
+                case 2: t.fillRect(ops[i], ops[i+1], ops[i+2], ops[i+3]); i += 4; break;
+                case 3: t.strokeRect(ops[i], ops[i+1], ops[i+2], ops[i+3]); i += 4; break;
+                case 4: t.beginPath(); t.ellipse(ops[i]+ops[i+2]/2, ops[i+1]+ops[i+3]/2, Math.abs(ops[i+2])/2, Math.abs(ops[i+3])/2, 0, 0, 6.283185307); t.fill(); i += 4; break;
+                case 5: t.beginPath(); t.ellipse(ops[i]+ops[i+2]/2, ops[i+1]+ops[i+3]/2, Math.abs(ops[i+2])/2, Math.abs(ops[i+3])/2, 0, 0, 6.283185307); t.stroke(); i += 4; break;
+                case 6: t.beginPath(); t.arc(ops[i], ops[i+1], Math.abs(ops[i+2]), 0, 6.283185307); t.fill(); i += 3; break;
+                case 7: t.beginPath(); t.arc(ops[i], ops[i+1], Math.abs(ops[i+2]), 0, 6.283185307); t.stroke(); i += 3; break;
+                case 8: t.beginPath(); t.moveTo(ops[i], ops[i+1]); t.lineTo(ops[i+2], ops[i+3]); t.stroke(); i += 4; break;
+                case 9: t.fillText(strs[ops[i]], ops[i+1], ops[i+2]); i += 3; break;
+                case 10: t.font = ops[i++] + 'px Helvetica, Arial, sans-serif'; break;
+                default: i = ops.length; break;
+            }
+        }
+    }, g_ops.data(), (int)g_ops.size(), joined.c_str(), g_width, g_height);
+
+    g_ops.clear();
+    g_strs.clear();
+    g_strIds.clear();
+}
+
 // ---- Window ----
 Window::Window(int width, int height, const std::string &title) {
     g_width = width;
@@ -73,77 +164,22 @@ Window::Window(int width, int height, const std::string &title) {
 Window::~Window() = default;
 void Window::setTerminateOnClose(bool) {}
 
-void Window::clear() {
-    EM_ASM({ window.__tvctx.clearRect(0, 0, $0, $1); }, g_width, g_height);
-}
-
-void Window::setColor(const std::string &color) {
-    g_color = resolveColor(color);
-    EM_ASM({
-        const s = UTF8ToString($0);
-        window.__tvctx.fillStyle = s;
-        window.__tvctx.strokeStyle = s;
-    }, g_color.c_str());
-}
-
-std::string Window::getColor() const { return g_color; }
-
-void Window::fillRect(int x, int y, int w, int h) {
-    EM_ASM({ window.__tvctx.fillRect($0, $1, $2, $3); }, x, y, w, h);
-}
-
-void Window::drawRect(int x, int y, int w, int h) {
-    EM_ASM({ window.__tvctx.strokeRect($0, $1, $2, $3); }, x, y, w, h);
-}
-
-// FLTK's oval takes a bounding box; canvas ellipse takes a centre and radii.
-void Window::fillOval(int x, int y, int w, int h) {
-    EM_ASM({
-        const t = window.__tvctx;
-        t.beginPath();
-        t.ellipse($0 + $2 / 2, $1 + $3 / 2, $2 / 2, $3 / 2, 0, 0, Math.PI * 2);
-        t.fill();
-    }, x, y, w, h);
-}
-
-void Window::drawOval(int x, int y, int w, int h) {
-    EM_ASM({
-        const t = window.__tvctx;
-        t.beginPath();
-        t.ellipse($0 + $2 / 2, $1 + $3 / 2, $2 / 2, $3 / 2, 0, 0, Math.PI * 2);
-        t.stroke();
-    }, x, y, w, h);
-}
-
-void Window::fillCircle(int cx, int cy, int r) {
-    EM_ASM({
-        const t = window.__tvctx;
-        t.beginPath(); t.arc($0, $1, $2, 0, Math.PI * 2); t.fill();
-    }, cx, cy, r);
-}
-
-void Window::drawCircle(int cx, int cy, int r) {
-    EM_ASM({
-        const t = window.__tvctx;
-        t.beginPath(); t.arc($0, $1, $2, 0, Math.PI * 2); t.stroke();
-    }, cx, cy, r);
-}
-
-void Window::drawLine(int x0, int y0, int x1, int y1) {
-    EM_ASM({
-        const t = window.__tvctx;
-        t.beginPath(); t.moveTo($0, $1); t.lineTo($2, $3); t.stroke();
-    }, x0, y0, x1, y1);
-}
-
-void Window::drawLabel(const std::string &text, int x, int y) {
-    EM_ASM({ window.__tvctx.fillText(UTF8ToString($0), $1, $2); }, text.c_str(), x, y);
-}
+void Window::clear()                                   { push(OP_CLEAR); }
+void Window::setColor(const std::string &color)        { g_color = resolveColor(color); push(OP_COLOR, intern(g_color)); }
+std::string Window::getColor() const                   { return g_color; }
+void Window::fillRect(int x, int y, int w, int h)      { push(OP_FILLRECT, x, y, w, h); }
+void Window::drawRect(int x, int y, int w, int h)      { push(OP_STROKERECT, x, y, w, h); }
+void Window::fillOval(int x, int y, int w, int h)      { push(OP_FILLELLIPSE, x, y, w, h); }
+void Window::drawOval(int x, int y, int w, int h)      { push(OP_STROKEELLIPSE, x, y, w, h); }
+void Window::fillCircle(int cx, int cy, int r)         { push(OP_FILLCIRCLE, cx, cy, r); }
+void Window::drawCircle(int cx, int cy, int r)         { push(OP_STROKECIRCLE, cx, cy, r); }
+void Window::drawLine(int x0, int y0, int x1, int y1)  { push(OP_LINE, x0, y0, x1, y1); }
+void Window::drawLabel(const std::string &t, int x, int y) { push(OP_TEXT, intern(t), x, y); }
 
 int  Window::getWidth()  const { return g_width; }
 int  Window::getHeight() const { return g_height; }
-bool Window::isOpen()    const { return true; }   // a canvas never closes
-void Window::update()          {}                 // canvas paints immediately
+bool Window::isOpen()    const { return true; }
+void Window::update()          {}
 
 bool Window::hasEvents() const { return !g_events.empty(); }
 
@@ -154,7 +190,6 @@ Event Window::getEvent() {
     return e;
 }
 
-
 // ---- higher-level helpers declared in graphics.h ----
 // The FLTK backend implements these with fl_font/fl_width; canvas has
 // measureText, and the font is context state in both, so these are near
@@ -163,15 +198,9 @@ Event Window::getEvent() {
 
 namespace {
 
-void setFontSize(int px) {
-    EM_ASM({ window.__tvctx.font = $0 + 'px Helvetica, Arial, sans-serif'; }, px);
-}
-
-int measureText(const std::string &text) {
-    return EM_ASM_INT({
-        return Math.round(window.__tvctx.measureText(UTF8ToString($0)).width);
-    }, text.c_str());
-}
+int g_fontPx = 14;
+void setFontSize(int px) { g_fontPx = px; push(OP_FONT, px); }
+int measureText(const std::string &text) { return measureCached(text, g_fontPx); }
 
 } // namespace
 

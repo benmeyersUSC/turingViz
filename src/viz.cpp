@@ -169,6 +169,11 @@ void TuringMachineVisualization::processEvents() {
     // For now, we'll handle drag on mouse down events
 }
 
+TuringMachineVisualization::~TuringMachineVisualization(){
+    delete tm;
+    delete window;
+}
+
 bool TuringMachineVisualization::tick(long long elapsedMs){
     processEvents();
     const bool running = update(elapsedMs);

@@ -264,24 +264,41 @@ void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWid
             drawShapeWithText(*window, "Q" + to_string(1 + c->stateIndex), (c->confIndex + 0.5) * widthPerConfig, wHeight * (1.5 * genomeMult), widthPerConfig, wHeight * genomeMult, true, c->color);
             if (c == currentConfig){
                 unsigned oldX = widthPerConfig/2 + (c->confIndex * widthPerConfig);
+                // Where the head will be *after* this step, to slide the marker
+                // toward the next gene. update() writes before it moves, so for a
+                // non-moving transition the symbol under the head becomes this
+                // configuration's writeSymbol -- reading the tape here would use
+                // the stale value and mispredict.
                 Symbol nextSym;
                 if (c->direction == RIGHT){
                     nextSym = tape->readAt(tape->getHead() + 1);
                 }
                 else if (c->direction == LEFT){
-                    nextSym = tape->readAt(tape->getHead() -1);
+                    nextSym = tape->readAt(tape->getHead() - 1);
                 }
                 else{
-                    nextSym = tape->read();
+                    nextSym = c->writeSymbol;
                 }
-                Configuration* rrr = (*stateSymbolToConfig.at(c->nextState)).at(nextSym);
-                unsigned newX = widthPerConfig/2 + (rrr->confIndex * widthPerConfig);
-                unsigned x;
-                if (newX > oldX){
-                    x = oldX + (realP * (newX - oldX));
+
+                // A prediction must never be able to abort a frame: sparse
+                // machines legitimately have no configuration for a peeked
+                // symbol. Fall back to leaving the marker where it is.
+                Configuration* rrr = nullptr;
+                const auto stIt = stateSymbolToConfig.find(c->nextState);
+                if (stIt != stateSymbolToConfig.end()){
+                    const auto cfIt = stIt->second->find(nextSym);
+                    if (cfIt != stIt->second->end()) rrr = cfIt->second;
                 }
-                else{
-                    x = oldX - (realP * (oldX - newX));
+
+                unsigned x = oldX;
+                if (rrr != nullptr){
+                    unsigned newX = widthPerConfig/2 + (rrr->confIndex * widthPerConfig);
+                    if (newX > oldX){
+                        x = oldX + (realP * (newX - oldX));
+                    }
+                    else{
+                        x = oldX - (realP * (oldX - newX));
+                    }
                 }
                 string drawee = any_cast<bool>(window->params.at("protein_mode")) ? c->sdSig : c->signature;
                 drawShapeAroundText(*window, " | ", x, wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);

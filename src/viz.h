@@ -33,6 +33,8 @@ public:
     TuringMachineVisualization(fstream& file, unsigned stateRate = 100);
     // Same, from the program text directly -- the browser build has no files.
     TuringMachineVisualization(const string& description, unsigned stateRate = 100);
+    // Owns both; without this, every reload leaked a machine and a window.
+    ~TuringMachineVisualization();
     bool update(long long elapsed);
     void draw();
     void run();

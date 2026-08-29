@@ -2,7 +2,11 @@
 
 unsigned Tape::getHead(){return head;}
 
-Tape::Tape() : head(0), size(54), values(new char[54]), tapeFill("S_") {
+// cellsInUse and lastMv were never initialised. drawWhole() loops
+// `for (i = 0; i < cellsInUse; i++)`, so a garbage value means billions of
+// draw calls; it also divides by cellsInUse. One cell is in use at the start.
+Tape::Tape() : lastMv(NONE), head(0), size(54), tapeFill("S_"), cellsInUse(1) {
+    values = new char[54];
     for (unsigned i = 0; i < size; i++) {
         values[i] = toStr.at(S_);
         cellColors[i] = DEFAULT_COLOR;
@@ -13,7 +17,7 @@ Tape::~Tape() {
     delete[] values;
 }
 
-Tape::Tape(const Tape& other) : head(other.head), size(other.size), tapeFill(other.tapeFill) {
+Tape::Tape(const Tape& other) : lastMv(other.lastMv), head(other.head), size(other.size), tapeFill(other.tapeFill), cellsInUse(other.cellsInUse) {
     values = new char[size]; 
     for (unsigned i = 0; i < size; i++) {
         values[i] = other.values[i]; 
@@ -28,6 +32,9 @@ Tape& Tape::operator=(const Tape& other) {
         head = other.head;
         size = other.size;
         tapeFill = other.tapeFill;
+        lastMv = other.lastMv;
+        cellsInUse = other.cellsInUse;
+        cellColors = other.cellColors;
         
         values = new char[size]; 
         for (unsigned i = 0; i < size; i++) {
@@ -46,6 +53,7 @@ Symbol Tape::read(){
 }
 
 Symbol Tape::readAt(unsigned i){
+    if (i >= size) return toSym.at("S_");   // callers peek at head +/- 1, which can fall off either end
     char vl = values[i];
     for (const auto& pair : toStr){
         if (pair.second == vl){return pair.first;}
