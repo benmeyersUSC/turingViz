@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Turing Machine Visualizer</title>
+<style>
+  :root { --bg:#0f1115; --panel:#161920; --line:#262a33; --fg:#e6e8ec; --muted:#98a0ad; --accent:#7aa2ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:1.5rem 1rem 3rem; background:var(--bg); color:var(--fg);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; }
+  .wrap { max-width:1503px; margin:auto; }
+  h1 { font-size:1.35rem; margin:0 0 .2rem; }
+  .sub { color:var(--muted); margin:0 0 1.2rem; font-size:.9rem; }
+  .bar { display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; margin-bottom:.9rem; }
+  select, button { font:inherit; font-size:.85rem; padding:.4rem .7rem; border-radius:6px;
+                   background:var(--panel); color:var(--fg); border:1px solid var(--line); cursor:pointer; }
+  button:hover, select:hover { border-color:var(--accent); }
+  label { color:var(--muted); font-size:.8rem; }
+  #wrapCanvas { position:relative; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#fff; }
+  canvas { display:block; width:100%; height:auto; }
+  #status { color:var(--muted); font-size:.85rem; margin-top:.8rem; min-height:1.2em; }
+  #status.err { color:#ff8080; }
+  .hint { color:var(--muted); font-size:.8rem; margin-top:.5rem; }
+  kbd { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:.05rem .35rem; font-size:.75rem; }
+  a { color:var(--accent); }
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>Turing Machine Visualizer</h1>
+<p class="sub">A C++ visualizer compiled to WebAssembly. Same engine as the desktop build &mdash;
+only the graphics backend differs.</p>
+
+<div class="bar">
+  <label for="prog">Program</label>
+  <select id="prog"></select>
+  <button id="restart">Restart</button>
+  <button id="pause">Pause</button>
+</div>
+
+<div id="wrapCanvas"><canvas id="canvas" width="1503" height="819"></canvas></div>
+<div id="status">Loading WebAssembly&hellip;</div>
+<p class="hint">Speed is the slider inside the canvas, bottom right. Press <kbd>P</kbd> to toggle
+the state-signature display.</p>
+
+<script>
+const PROGRAMS = {
+"counting.javaturing": "INIT - S_ - SENTINEL - R - INIT0;\nINIT0 - S_ - S_ - R - INIT1;\nINIT1 - S_ - S0 - R - INIT2;\nINIT2 - S_ - S_ - R - INIT3;\nINIT3 - S_ - S1 - R - INIT4;\nINIT4 - S_ - S_ - R - INIT5;\nINIT5 - S_ - S0 - R - FIND_0;\n\nFIND_0 - S_ - S_ - L - FIND_0;\nFIND_0 - S0 - S0 - L - FIND_0_in;\n\nFIND_0_in - S_ - S_ - L - FIND_0_in;\nFIND_0_in - S0 - S0 - R - MARK_1;\nFIND_0_in - S1 - S1 - L - FIND_0_in;\n\nMARK_1 - S_ - S_ - R - MARK_1;\nMARK_1 - S0 - S0 - R - FIND_X;\nMARK_1 - S1 - S1 - R - MARK;\n\nMARK - S_ - X - R - MARK_1;\n\nFIND_X - S_ - S_ - L - FIND_X;\nFIND_X - S0 - S0 - L - FIND_X_in;\nFIND_X - S1 - S1 - L - FIND_X;\n\nFIND_X_in - S_ - S_ - L - FIND_X_in;\nFIND_X_in - S0 - S0 - R - DONE;\nFIND_X_in - S1 - S1 - L - FIND_X_in;\nFIND_X_in - X - S_ - R - MOVE_X;\n\nMOVE_X - S_ - S_ - R - IF_MOVE_X;\nMOVE_X - S0 - S0 - R - MOVE_X;\nMOVE_X - S1 - S1 - R - MOVE_X;\n\nIF_MOVE_X - S_ - S1 - R - FIND_X;\nIF_MOVE_X - S0 - S0 - R - MOVE_X;\nIF_MOVE_X - S1 - S1 - R - MOVE_X;\n\nDONE - S_ - S_ - R - IF_DONE;\n\nIF_DONE - S_ - S1 - R - END;\nIF_DONE - S0 - S0 - R - DONE;\nIF_DONE - S1 - S1 - R - DONE;\n\nEND - S_ - S_ - R - END_2;\nEND_2 - S_ - S0 - R - FIND_0;",
+"doubling.javaturing": "INIT - S_ - SENTINEL - R - INIT0;\nINIT0 - S_ - S_ - R - INIT1;\nINIT1 - S_ - S0 - R - INIT2;\nINIT2 - S_ - S_ - R - INIT3;\nINIT3 - S_ - S1 - R - INIT4;\nINIT4 - S_ - S_ - R - INIT5;\nINIT5 - S_ - S0 - R - FIND_0;\n\nFIND_0 - S_ - S_ - L - FIND_0;\nFIND_0 - S0 - S0 - L - FIND_0_in;\n\nFIND_0_in - S_ - S_ - L - FIND_0_in;\nFIND_0_in - S0 - S0 - R - MARK_1;\nFIND_0_in - S1 - S1 - L - FIND_0_in;\n\nMARK_1 - S_ - S_ - R - MARK_1;\nMARK_1 - S0 - S0 - R - FIND_X;\nMARK_1 - S1 - S1 - R - MARK;\n\nMARK - S_ - X - R - MARK_1;\n\nFIND_X - S_ - S_ - L - FIND_X;\nFIND_X - S0 - S0 - L - FIND_X_in;\nFIND_X - S1 - S1 - L - FIND_X;\n\nFIND_X_in - S_ - S_ - L - FIND_X_in;\nFIND_X_in - S0 - S0 - R - DONE_X;\nFIND_X_in - S1 - S1 - L - FIND_X_in;\nFIND_X_in - X - Y - R - MOVE_X;\nFIND_X_in - Y - Y - L - FIND_X_in;\n\nMOVE_X - S_ - S_ - R - MOVE_X;\nMOVE_X - S0 - S0 - R - MOVE_X_a;\nMOVE_X - S1 - S1 - R - MOVE_X;\nMOVE_X - X - X - R - MOVE_X;\nMOVE_X - Y - Y - R - MOVE_X;\n\nMOVE_X_a - S_ - S_ - R - WRITE_1;\n\nWRITE_1 - S_ - S1 - R - FIND_X;\nWRITE_1 - S1 - S1 - R - WRITE_1_b;\n\nWRITE_1_b - S_ - S_ - R - WRITE_1_c;\n\nWRITE_1_c - S_ - S1 - R - FIND_X;\nWRITE_1_c - S1 - S1 - R - WRITE_1_b;\n\nDONE_X - S_ - S_ - R - IF_DONE_X;\nDONE_X - S0 - S0 - R - DONE_X;\nDONE_X - S1 - S1 - R - DONE_X;\nDONE_X - X - Y - R - MOVE_X;\nDONE_X - Y - Y - R - DONE_X;\n\nIF_DONE_X - S_ - S_ - L - FIND_Y;\nIF_DONE_X - S0 - S0 - R - DONE_X;\nIF_DONE_X - S1 - S1 - R - DONE_X;\nIF_DONE_X - Y - Y - R - DONE_X;\n\nFIND_Y - S_ - S_ - L - FIND_Y;\nFIND_Y - S0 - S0 - L - FIND_Y_in;\nFIND_Y - S1 - S1 - L - FIND_Y;\n\nFIND_Y_in - S_ - S_ - L - FIND_Y_in;\nFIND_Y_in - S0 - S0 - R - TO_END;\nFIND_Y_in - S1 - S1 - L - FIND_Y_in;\nFIND_Y_in - Y - S_ - R - MOVE_Y;\n\nMOVE_Y - S_ - S_ - R - IF_MOVE_Y;\nMOVE_Y - S0 - S0 - R - MOVE_Y;\nMOVE_Y - S1 - S1 - R - MOVE_Y;\n\nIF_MOVE_Y - S_ - S1 - R - FIND_Y;\nIF_MOVE_Y - S0 - S0 - R - MOVE_Y;\nIF_MOVE_Y - S1 - S1 - R - MOVE_Y;\n\nTO_END - S_ - S_ - R - IF_TO_END;\nTO_END - S0 - S0 - R - TO_END;\nTO_END - S1 - S1 - R - TO_END;\n\nIF_TO_END - S_ - S0 - R - FIND_0;\nIF_TO_END - S0 - S0 - R - TO_END;\nIF_TO_END - S1 - S1 - R - TO_END;",
+"doubling2.turing": "INIT0 - S_ - S_ - R - INIT1;\nINIT1 - S_ - S0 - R - INIT2;\nINIT2 - S_ - S_ - R - INIT3;\nINIT3 - S_ - S1 - R - INIT4;\nINIT4 - S_ - S_ - R - INIT5;\nINIT5 - S_ - S0 - R - FIND_0;\n\nFIND_0 - S_ - S_ - L - FIND_0;\nFIND_0 - S0 - S0 - L - FIND_0_in;\n\nFIND_0_in - S_ - S_ - L - FIND_0_in;\nFIND_0_in - S0 - S0 - R - MARK_1;\nFIND_0_in - S1 - S1 - L - FIND_0_in;\n\nMARK_1 - S_ - S_ - R - MARK_1;\nMARK_1 - S0 - S0 - R - pre_FIND_X;\nMARK_1 - S1 - S1 - R - MARK;\n\nMARK - S_ - X - R - MARK_1;\n\npre_FIND_X - S_ - S_ - L - pre_FIND_X;\npre_FIND_X - S0 - S0 - L - FIND_X;\npre_FIND_X - S1 - S1 - L - pre_FIND_X;\n\nFIND_X - S_ - S_ - L - FIND_X;\nFIND_X - S0 - S0 - R - DONE_X;\nFIND_X - S1 - S1 - L - FIND_X;\nFIND_X - X - Y - R - MOVE_X;\nFIND_X - Y - S_ - R - MOVE_Y;\n\nMOVE_X - S_ - S_ - R - MOVE_X;\nMOVE_X - S0 - S0 - R - MOVE_X_a;\nMOVE_X - S1 - S1 - R - MOVE_X;\n\nMOVE_X_a - S_ - S_ - R - WRITE_1;\n\nWRITE_1 - S_ - S1 - R - pre_FIND_X;\nWRITE_1 - S1 - S1 - R - WRITE_1_b;\n\nWRITE_1_b - S_ - S_ - R - WRITE_1_c;\n\nWRITE_1_c - S_ - S1 - R - pre_FIND_X;\nWRITE_1_c - S1 - S1 - R - WRITE_1_b;\n\nDONE_X - S_ - S_ - R - IF_DONE_X;\n\nIF_DONE_X - S_ - S_ - L - FIND_Y;\nIF_DONE_X - S0 - S0 - R - DONE_X;\nIF_DONE_X - S1 - S1 - R - DONE_X;\n\nFIND_Y - S_ - S_ - L - FIND_Y;\nFIND_Y - S0 - S0 - L - FIND_Y_in;\nFIND_Y - S1 - S1 - L - FIND_Y;\n\nFIND_Y_in - S_ - S_ - L - FIND_Y_in;\nFIND_Y_in - S0 - S0 - R - TO_END;\nFIND_Y_in - S1 - S1 - L - FIND_Y_in;\n\nMOVE_Y - S_ - S_ - R - IF_MOVE_Y;\nMOVE_Y - S0 - S0 - R - MOVE_Y;\nMOVE_Y - S1 - S1 - R - MOVE_Y;\n\nIF_MOVE_Y - S_ - S1 - R - pre_FIND_X;\nIF_MOVE_Y - S0 - S0 - R - MOVE_Y;\nIF_MOVE_Y - S1 - S1 - R - MOVE_Y;\n\nTO_END - S_ - S_ - R - IF_TO_END;\n\nIF_TO_END - S_ - S0 - R - FIND_0;\nIF_TO_END - S0 - S0 - R - TO_END;\nIF_TO_END - S1 - S1 - R - TO_END;\n",
+"sqrt2.javaturing": "INIT - S_ - SENTINEL - R - INIT_2;\nINIT_2 - S_ - S1 - R - INIT_3;\nINIT_3 - S_ - S_ - R - INIT_4;\nINIT_4 - S_ - S0 - R - INIT_5;\nINIT_5 - S_ - S_ - R - INIT_6;\nINIT_6 - S_ - S1 - R - INIT_7;\nINIT_7 - S_ - S_ - R - NEW;\n\nNEW - SENTINEL - SENTINEL - R - MARK_DIGITS;\nNEW - S_ - S_ - L - NEW;\nNEW - S0 - S0 - L - NEW;\nNEW - S1 - S1 - L - NEW;\n\nMARK_DIGITS - S0 - S0 - R - MARK_DIGITS_2;\nMARK_DIGITS - S1 - S1 - R - MARK_DIGITS_2;\nMARK_DIGITS - S_ - S_ - R - MARK_H;\n\nMARK_H - S_ - Z - R - MARK_H_2;\nMARK_H_2 - S_ - S_ - R - MARK_H_3;\nMARK_H_3 - S_ - Q - N - FIND_X;\n\nMARK_DIGITS_2 - S_ - X - R - MARK_DIGITS;\n\nFIND_X - X - S_ - N - FIRST_R;\nFIND_X - SENTINEL - SENTINEL - N - FIND_DIGITS;\nFIND_X - S_ - S_ - L - FIND_X_H;\nFIND_X - Z - Z - L - FIND_X_H;\nFIND_X - Q - Q - L - FIND_X_H;\n\nFIND_X_H - S_ - S_ - L - FIND_X;\nFIND_X_H - S0 - S0 - L - FIND_X;\nFIND_X_H - S1 - S1 - L - FIND_X;\n\nFIRST_R - Q - Q - R - FIRST_R_H;\nFIRST_R - S_ - S_ - R - FIRST_R;\nFIRST_R - S0 - S0 - R - FIRST_R;\nFIRST_R - S1 - S1 - R - FIRST_R;\nFIRST_R - Z - Z - R - FIRST_R;\n\nFIRST_R_H - S_ - S_ - R - LAST_R;\n\nLAST_R - Q - Q - R - LAST_R_H;\nLAST_R - S_ - Q - R - LAST_R_H_2;\n\nLAST_R_H - S_ - S_ - R - LAST_R;\n\nLAST_R_H_2 - S_ - S_ - R - LAST_R_H_3;\nLAST_R_H_3 - S_ - Q - N - FIND_X;\n\nFIND_DIGITS - SENTINEL - SENTINEL - R - FIND_DIGITS_H;\nFIND_DIGITS - S_ - S_ - L - FIND_DIGITS;\nFIND_DIGITS - S0 - S0 - L - FIND_DIGITS;\nFIND_DIGITS - S1 - S1 - L - FIND_DIGITS;\nFIND_DIGITS - X - X - L - FIND_DIGITS;\nFIND_DIGITS - Y - Y - L - FIND_DIGITS;\nFIND_DIGITS - Z - Z - L - FIND_DIGITS;\nFIND_DIGITS - Q - Q - L - FIND_DIGITS;\nFIND_DIGITS - R - R - L - FIND_DIGITS;\nFIND_DIGITS - U - U - L - FIND_DIGITS;\nFIND_DIGITS - V - V - L - FIND_DIGITS;\n\nFIND_DIGITS_H - S1 - S1 - R - FIND_FST_DIG;\n\nFIND_FST_DIG - X - X - L - FOUND_FST_DIG;\nFIND_FST_DIG - Y - Y - L - FOUND_FST_DIG;\nFIND_FST_DIG - Z - Z - L - FOUND_SND_DIG;\nFIND_FST_DIG - S_ - S_ - R - FIND_FST_DIG_H;\n\nFIND_FST_DIG_H - S_ - S_ - R - FIND_FST_DIG;\nFIND_FST_DIG_H - S0 - S0 - R - FIND_FST_DIG;\nFIND_FST_DIG_H - S1 - S1 - R - FIND_FST_DIG;\n\nFOUND_FST_DIG - S0 - S0 - R - ADD_ZERO;\nFOUND_FST_DIG - S1 - S1 - R - FFD_H;\n\n\nFFD_H - X - X - R - FFD_H_2;\nFFD_H - Y - Y - R - FFD_H_2;\n\nFFD_H_2 - S_ - S_ - R - FIND_SND_DIG;\nFFD_H_2 - S0 - S0 - R - FIND_SND_DIG;\nFFD_H_2 - S1 - S1 - R - FIND_SND_DIG;\n\nFIND_SND_DIG - X - X - L - FOUND_SND_DIG;\nFIND_SND_DIG - Y - Y - L - FOUND_SND_DIG;\nFIND_SND_DIG - S_ - S_ - R - FSD_H;\n\nFSD_H - S_ - S_ - R - FIND_SND_DIG;\nFSD_H - S0 - S0 - R - FIND_SND_DIG;\nFSD_H - S1 - S1 - R - FIND_SND_DIG;\n\nFOUND_SND_DIG - S0 - S0 - R - ADD_ZERO;\nFOUND_SND_DIG - S1 - S1 - R - ADD_ONE;\nFOUND_SND_DIG - S_ - S_ - R - ADD_ONE;\n\nADD_ZERO - Q - T - N - ADD_FINISHED;\nADD_ZERO - R - S - N - ADD_FINISHED;\nADD_ZERO - S_ - S_ - R - AZ_H;\nADD_ZERO - X - X - R - AZ_H;\nADD_ZERO - Y - Y - R - AZ_H;\nADD_ZERO - Z - Z - R - AZ_H;\nADD_ZERO - S - S - R - AZ_H;\nADD_ZERO - T - T - R - AZ_H;\nADD_ZERO - U - U - R - AZ_H;\nADD_ZERO - V - V - R - AZ_H;\n\nAZ_H - S_ - S_ - R - ADD_ZERO;\nAZ_H - S0 - S0 - R - ADD_ZERO;\nAZ_H - S1 - S1 - R - ADD_ZERO;\n\nADD_ONE - Q - S - N - ADD_FINISHED;\nADD_ONE - R - T - R - ADD_ONE_U_H;\nADD_ONE - S_ - S_ - R - AO_H;\nADD_ONE - X - X - R - AO_H;\nADD_ONE - Y - Y - R - AO_H;\nADD_ONE - Z - Z - R - AO_H;\nADD_ONE - S - S - R - AO_H;\nADD_ONE - T - T - R - AO_H;\nADD_ONE - U - U - R - AO_H;\nADD_ONE - V - V - R - AO_H;\n\nAO_H - S_ - S_ - R - ADD_ONE;\nAO_H - S0 - S0 - R - ADD_ONE;\nAO_H - S1 - S1 - R - ADD_ONE;\n\nADD_ONE_U_H - S_ - S_ - R - CARRY;\n\nCARRY - Q - R - N - ADD_FINISHED;\nCARRY - S_ - R - N - NEW_DIGIT_IS_ZERO;\nCARRY - R - Q - R - C_H;\n\nC_H - S_ - S_ - R - CARRY;\n\nADD_FINISHED - SENTINEL - SENTINEL - R - AF_H_SENT;\nADD_FINISHED - S_ - S_ - L - AF_H;\nADD_FINISHED - X - X - L - AF_H;\nADD_FINISHED - Y - Y - L - AF_H;\nADD_FINISHED - Z - Z - L - AF_H;\nADD_FINISHED - Q - Q - L - AF_H;\nADD_FINISHED - R - R - L - AF_H;\nADD_FINISHED - S - S - L - AF_H;\nADD_FINISHED - T - T - L - AF_H;\nADD_FINISHED - U - U - L - AF_H;\nADD_FINISHED - V - V - L - AF_H;\n\nAF_H - S_ - S_ - L - ADD_FINISHED;\nAF_H - S0 - S0 - L - ADD_FINISHED;\nAF_H - S1 - S1 - L - ADD_FINISHED;\n\n\nAF_H_SENT - S1 - S1 - R - ERASE_OLD_X;\n\nERASE_OLD_X - X - S_ - L - EOX;\nERASE_OLD_X - Z - Y - L - EOX;\nERASE_OLD_X - S_ - S_ - R - EOX_2;\nERASE_OLD_X - Y - Y - R - EOX_2;\n\nEOX - S_ - S_ - L - PRINT_NEW_X;\nEOX - S0 - S0 - L - PRINT_NEW_X;\nEOX - S1 - S1 - L - PRINT_NEW_X;\n\nEOX_2 - S_ - S_ - R - ERASE_OLD_X;\nEOX_2 - S0 - S0 - R - ERASE_OLD_X;\nEOX_2 - S1 - S1 - R - ERASE_OLD_X;\n\nPRINT_NEW_X - SENTINEL - SENTINEL - R - PNX;\nPRINT_NEW_X - Y - Z - N - FIND_DIGITS;\nPRINT_NEW_X - S_ - X - N - FIND_DIGITS;\n\nPNX - S1 - S1 - R - ERASE_OLD_Y;\n\nERASE_OLD_Y - Y - S_ - L - EOY;\nERASE_OLD_Y - S_ - S_ - R - EOY_2;\n\nEOY_2 - S_ - S_ - R - ERASE_OLD_Y;\nEOY_2 - S0 - S0 - R - ERASE_OLD_Y;\nEOY_2 - S1 - S1 - R - ERASE_OLD_Y;\n\nEOY - S_ - S_ - L - PRINT_NEW_Y;\nEOY - S0 - S0 - L - PRINT_NEW_Y;\nEOY - S1 - S1 - L - PRINT_NEW_Y;\n\nPRINT_NEW_Y - SENTINEL - SENTINEL - R - NEW_DIGIT_IS_ONE;\nPRINT_NEW_Y - S_ - Y - R - RESET_NEW_X;\n\nRESET_NEW_X - S_ - S_ - R - RNX;\nRESET_NEW_X - S0 - S0 - R - RNX_2;\nRESET_NEW_X - S1 - S1 - R - RNX_2;\n\nRNX - S_ - X - N - FLAG_RESULT_DIGS;\n\nRNX_2 - S_ - S_ - R - RESET_NEW_X;\n\nFLAG_RESULT_DIGS - T - U - R - FRD;\nFLAG_RESULT_DIGS - S - V - R - FRD;\nFLAG_RESULT_DIGS - X - X - R - FRD_2;\nFLAG_RESULT_DIGS - U - U - R - FRD_2;\nFLAG_RESULT_DIGS - V - V - R - FRD_2;\n\n\nFRD - S_ - S_ - R - UNFLAG_RESULT_DIGS;\n\nFRD_2 - S_ - S_ - R - FLAG_RESULT_DIGS;\n\nUNFLAG_RESULT_DIGS - T - Q - R - FRD;\nUNFLAG_RESULT_DIGS - S - R - R - FRD;\nUNFLAG_RESULT_DIGS - Q - Q - N - FIND_DIGITS;\nUNFLAG_RESULT_DIGS - R - R - N - FIND_DIGITS;\n\nNEW_DIGIT_IS_ZERO - SENTINEL - SENTINEL - R - PRINT_ZERO_DIGIT;\nNEW_DIGIT_IS_ZERO - S_ - S_ - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - S0 - S0 - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - S1 - S1 - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - Z - Z - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - R - R - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - S - S - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - T - T - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - U - U - L - NEW_DIGIT_IS_ZERO;\nNEW_DIGIT_IS_ZERO - V - V - L - NEW_DIGIT_IS_ZERO;\n\nPRINT_ZERO_DIGIT - S0 - S0 - R - PZD;\nPRINT_ZERO_DIGIT - S1 - S1 - R - PZD;\nPRINT_ZERO_DIGIT - S_ - S0 - R - PZD_2;\n\nPZD - S_ - S_ - R - PRINT_ZERO_DIGIT;\nPZD - Z - S_ - R - PRINT_ZERO_DIGIT;\n\nPZD_2 - S_ - S_ - R - PZD_3;\n\nPZD_3 - S_ - S_ - R - CLEANUP;\n\nNEW_DIGIT_IS_ONE - SENTINEL - SENTINEL - R - PRINT_ONE_DIGIT;\nNEW_DIGIT_IS_ONE - S1 - S1 - L - NEW_DIGIT_IS_ONE;\n\nPRINT_ONE_DIGIT - S0 - S0 - R - POD;\nPRINT_ONE_DIGIT - S1 - S1 - R - POD;\nPRINT_ONE_DIGIT - S_ - S1 - R - POD_2;\n\nPOD - S_ - S_ - R - PRINT_ONE_DIGIT;\n\nPOD_2 - S_ - S_ - R - POD_3;\n\nPOD_3 - S_ - S_ - R - CLEANUP;\n\nCLEANUP - S_ - S_ - N - NEW;\nCLEANUP - R - S_ - R - CLNP;\nCLEANUP - S - S_ - R - CLNP;\nCLEANUP - T - S_ - R - CLNP;\nCLEANUP - U - S_ - R - CLNP;\nCLEANUP - V - S_ - R - CLNP;\n\nCLNP - S_ - S_ - R - CLEANUP;"
+};
+</script>
+
+<script>
+  const statusEl = document.getElementById('status');
+  const canvas   = document.getElementById('canvas');
+  const sel      = document.getElementById('prog');
+
+  // Assigned once the wasm factory resolves. C++ main() runs *during* module
+  // init -- before that promise settles -- so nothing may touch this until then.
+  let Module = null;
+  let paused = false;
+
+  window.tvBooted = () => {};                       // fires too early to be useful
+  window.tvReady  = () => { statusEl.className = ''; statusEl.textContent = 'Running \u2014 ' + sel.value; };
+  window.tvStopped = (m) => { statusEl.className = ''; statusEl.textContent =
+      'Stopped: ' + m + ' \u2014 press Restart or pick another program.'; };
+  window.tvError  = (m) => { statusEl.className = 'err'; statusEl.textContent = 'Error: ' + m; };
+
+  Object.keys(PROGRAMS).forEach(name => {
+    const o = document.createElement('option');
+    o.value = name; o.textContent = name;
+    sel.appendChild(o);
+  });
+
+  function start() {
+    if (!Module) return;
+    // Speed is owned by the slider inside the canvas; this is just the start value.
+    Module.ccall('tv_load', null, ['string', 'number'], [PROGRAMS[sel.value], 100]);
+    paused = false;
+    document.getElementById('pause').textContent = 'Pause';
+  }
+
+  document.getElementById('restart').onclick = start;
+  sel.onchange = start;
+  document.getElementById('pause').onclick = () => {
+    if (!Module) return;
+    paused = !paused;
+    Module.ccall('tv_set_paused', null, ['number'], [paused ? 1 : 0]);
+    document.getElementById('pause').textContent = paused ? 'Resume' : 'Pause';
+  };
+
+  // graphics.h polls its own event queue, so the page just pushes into it.
+  function canvasPos(e) {
+    const r = canvas.getBoundingClientRect();
+    return {
+      x: Math.round((e.clientX - r.left) * (canvas.width  / r.width)),
+      y: Math.round((e.clientY - r.top)  * (canvas.height / r.height)),
+    };
+  }
+  canvas.addEventListener('mousedown', e => {
+    if (!Module) return;
+    const p = canvasPos(e);
+    Module.ccall('tv_push_mouse', null, ['number','number','number','number'], [1, p.x, p.y, 1]);
+  });
+  window.addEventListener('mouseup', e => {
+    if (!Module) return;
+    const p = canvasPos(e);
+    Module.ccall('tv_push_mouse', null, ['number','number','number','number'], [1, p.x, p.y, 0]);
+  });
+  window.addEventListener('keydown', e => {
+    if (!Module || e.key.length !== 1) return;
+    Module.ccall('tv_push_key', null, ['number','number'], [e.key.charCodeAt(0), 1]);
+  });
+</script>
+<script src="turingviz.js"></script>
+<script>
+  // MODULARIZE: turingviz.js exports a factory. Everything waits on it.
+  createTuringViz()
+    .then(m => { Module = m; statusEl.textContent = 'Ready.'; start(); })
+    .catch(e => { statusEl.className = 'err'; statusEl.textContent = 'Failed to load: ' + e; });
+</script>
+
+</div></body></html>

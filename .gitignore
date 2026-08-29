@@ -1,0 +1,15 @@
+*
+!.gitignore
+!.showcase.yml
+!main.cpp
+!src/
+!src/**/*
+!CMakeLists.txt
+!turingStill.png
+!README.md
+# The web (WebAssembly) build: source, build script, and the published
+# GitHub Pages directory. docs/ is what Pages serves.
+!main_web.cpp
+!build_web.sh
+!docs/
+!docs/**
