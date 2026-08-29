@@ -3,16 +3,10 @@
 #include <sstream>
 #include <iomanip>
 
-TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned stateRate){
-    window = new Window(1503, 819, "Turing Machine Visualization");
-    window->params.emplace("protein_mode", true);
-    
-    Tape* tape = new Tape();
-    tm = TuringMachine::fromStandardDescription(file, tape, stateRate);
-    
+void TuringMachineVisualization::setupUI(){
     // Initialize slider state
     draggingSlider = false;
-        sliderHeight = 30;
+    sliderHeight = 30;
 
     sliderWidth = 300;
     sliderX = window->getWidth() * 0.75 - sliderWidth/2.0;
@@ -22,6 +16,24 @@ TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned s
     buttonX = window->getWidth()*0.25 - buttonWidth*0.5;
     buttonHeight = 35;
     buttonY = window->getHeight() - buttonHeight*1.1;
+}
+
+TuringMachineVisualization::TuringMachineVisualization(fstream& file, unsigned stateRate){
+    window = new Window(1503, 819, "Turing Machine Visualization");
+    window->params.emplace("protein_mode", true);
+
+    Tape* tape = new Tape();
+    tm = TuringMachine::fromStandardDescription(file, tape, stateRate);
+    setupUI();
+}
+
+TuringMachineVisualization::TuringMachineVisualization(const string& description, unsigned stateRate){
+    window = new Window(1503, 819, "Turing Machine Visualization");
+    window->params.emplace("protein_mode", true);
+
+    Tape* tape = new Tape();
+    tm = TuringMachine::fromStandardDescription(description, tape, stateRate);
+    setupUI();
 }
 
 bool TuringMachineVisualization::isPointInButton(int x, int y) {
@@ -157,24 +169,29 @@ void TuringMachineVisualization::processEvents() {
     // For now, we'll handle drag on mouse down events
 }
 
+TuringMachineVisualization::~TuringMachineVisualization(){
+    delete tm;
+    delete window;
+}
+
+bool TuringMachineVisualization::tick(long long elapsedMs){
+    processEvents();
+    const bool running = update(elapsedMs);
+    draw();
+    return running;
+}
+
 void TuringMachineVisualization::run(){
     bool running = true;
     auto lastTime = std::chrono::high_resolution_clock::now();
-    int xxx = 0;
-    
+
     while (running && window->isOpen()){
         auto currentTime = std::chrono::high_resolution_clock::now();
         long long delta = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
-        
-        // Process any keyboard/mouse events
-        processEvents();
-        
-        running = update(delta);
-        draw();
-        
+
+        running = tick(delta);
+
         lastTime = currentTime;
-        xxx++;
-        if (xxx > 9000){running = false;}
     }
     
     for (Configuration* conf : tm->getUnusedConfigs()){

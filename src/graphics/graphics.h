@@ -104,6 +104,11 @@ private:
 
 void error(const std::string& msg);
 
+#ifdef __EMSCRIPTEN__
+// Emits one frame's batched draw operations. No-op on other backends.
+void flushFrame();
+#endif
+
 // Color constants
 inline const std::string BLACK = "#000000";
 inline const std::string BLUE = "#0000FF";
