@@ -57,6 +57,18 @@ string Tape::readStr(int displacement){
     return string(1, values[std::min(std::max(((int)head + displacement), 0), (const int) size)]);
 }
 
+const string& Tape::colorAt(unsigned idx) const {
+    const auto it = cellColors.find(idx);
+    if (it == cellColors.end()) {
+        // drawWhole() paints cellsInUse cells, which can exceed the tape's
+        // current size -- cells the head has never reached simply have no
+        // entry yet, and default colour is the right answer for them.
+        static const string fallback = DEFAULT_COLOR;
+        return fallback;
+    }
+    return it->second;
+}
+
 void Tape::write(Symbol s){
     values[head] = toStr.at(s);
 }
@@ -87,7 +99,6 @@ void Tape::left(){
         
         for (int i = 0; i < 10; i++){
             newArr[i] = toStr.at(toSym.at(tapeFill));
-            cellColors[i] = DEFAULT_COLOR;
         }
         
         for (unsigned i = 10; i < size; i++){
@@ -99,6 +110,13 @@ void Tape::left(){
             if (idx < size - 10) {
                 newColors[idx + 10] = color;
             }
+        }
+        // Colour the ten new cells *after* the shift. Doing it before meant they
+        // were shifted up too, leaving 0..9 with no entry at all -- and
+        // drawWhole() reads colorAt(0) every frame once the head has been
+        // to the left edge.
+        for (unsigned i = 0; i < 10; i++) {
+            newColors[i] = DEFAULT_COLOR;
         }
         cellColors = newColors;
         
@@ -207,21 +225,21 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
             // actual squares, i to the right and left
             drawShapeWithText(*window, readStr(-i), 
                 x-(squareSize*mult*0.5)-(squareSize*0.75)-(squareSize*(i-1)), 
-            y, squareSize, squareSize, true, cellColors.at(std::max((int)(getHead() - i), 0)));
+            y, squareSize, squareSize, true, colorAt(std::max((int)(getHead() - i), 0)));
 
             drawShapeWithText(*window, readStr(i), 
                 x+(squareSize*mult*0.5)+(squareSize*0.75)+(squareSize*(i-1)), 
-            y, squareSize, squareSize, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
+            y, squareSize, squareSize, true, colorAt(std::min(getHead() + i, getSize()-1)));
             }
         else{
             // side messages
             drawShapeWithText(*window, rs.str(), 
                 squareSize,
-            y, squareSize*2, squareSize, true, cellColors.at(std::max((int)(getHead() - i), 0)));
+            y, squareSize*2, squareSize, true, colorAt(std::max((int)(getHead() - i), 0)));
 
             drawShapeWithText(*window, ls.str(), 
                 window->getWidth() - squareSize,
-            y, squareSize*2, squareSize, true, cellColors.at(std::min(getHead() + i, getSize()-1)));
+            y, squareSize*2, squareSize, true, colorAt(std::min(getHead() + i, getSize()-1)));
         }
     }
 
@@ -230,7 +248,7 @@ void Tape::draw(Window* window, Configuration* config, unsigned x, unsigned y, u
     drawShapeWithText(*window, "", x, y, squareSize*mult + squareSize/2.0, squareSize*mult*mult, true, config->color);
 
     // current square
-    drawShapeWithText(*window, readStr(), x, y, squareSize*mult, squareSize*mult, true, cellColors.at(getHead()));
+    drawShapeWithText(*window, readStr(), x, y, squareSize*mult, squareSize*mult, true, colorAt(getHead()));
     
     // head      
     string headDraw = any_cast<bool>(window->params.at("protein_mode")) ? config->sdSig : config->signature;
@@ -297,7 +315,7 @@ drawShapeWithText(*window, headthing, headX, wHeight * (1.0 - 5 * heightMult), c
 
     for (unsigned i = 0; i < cellsInUse; i++){
         // config-stained view
-        window->setColor(cellColors.at(i));
+        window->setColor(colorAt(i));
         window->fillRect(i * wid, wHeight * (1.0 - 4.0*heightMult), wid, wHeight * heightMult);
         
         window->setColor(BLACK);

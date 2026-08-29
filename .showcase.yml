@@ -1,2 +1,3 @@
 title: turingViz
-tagline: TODO - one line about this project
+tagline: C++ Visualization of a Turing Machine
+description: Run a virtual Turing Machine, graphically rendered to stoke a biological intuition. Experiment with various programs and watch the atoms of computation take you there!

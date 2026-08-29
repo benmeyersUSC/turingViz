@@ -21,6 +21,9 @@ class Tape{
 
     public:
     unordered_map<unsigned, string> cellColors;
+    // A missing colour should never abort the visualizer; drawWhole() indexes
+    // by head offsets that can outrun what the grow paths have populated.
+    const string& colorAt(unsigned idx) const;
 
     void setLastMv(Direction d);
     unsigned getHead();

@@ -4,9 +4,14 @@ using std::getline;
 using std::map;
 
 namespace helper{
-    Configuration::Configuration(){}
+    // stateIndex/confIndex are assigned later, during the numbering pass in
+    // fromStandardDescription. Zero them so a read before assignment is at
+    // worst wrong rather than undefined.
+    Configuration::Configuration() : stateIndex(0), confIndex(0) {}
 
     Configuration::Configuration(const string& nm, Symbol rd, const Symbol wt, const Direction d, string nxt):
+    stateIndex(0),
+    confIndex(0),
     name(nm),
     readSymbol(rd), 
     writeSymbol(wt), 

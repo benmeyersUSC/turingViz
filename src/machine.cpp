@@ -62,26 +62,32 @@ TuringMachine* TuringMachine::fromStandardDescription(string description, Tape* 
     // vector<string> colors = generateColorSpectrum(utm->configurations.size());
     // vector<string> colors = generateColorSpectrum(utm->stateSymbolToConfig.size());
 
+    // Pass 1: number every configuration. This has to finish before any SD
+    // string is built, because sdifyNC() reads the *next* state's stateIndex --
+    // and stateSymbolToConfig is ordered alphabetically, so a next-state that
+    // sorts later would otherwise be read before it has been numbered.
     for (const auto& [k, v] : utm->stateSymbolToConfig){
         for (const auto& [s, c] : *v){
             utm->configurations.push_back(c);
             c->stateIndex = stateNum;
             c->confIndex = confNum;
-
-            c->sd = utm->sdify(c);
-            c->sdSig = utm->sdifySig(c);
-            c->sdWS = utm->sdifyWS(c);
-            c->sdMV = utm->sdifyMV(c);
-            c->sdNC = utm->sdifyNC(c);
-            c->sdNum = utm->sdint(c);
-
-            utm->standardDesctription.push_back(c->sd);
-            utm->fullSD += c->sd;
-            utm->sdSignatures.push_back(c->sdSig);
-
             confNum++;
         }
         stateNum++;
+    }
+
+    // Pass 2: now every index is known, encode the standard descriptions.
+    for (Configuration* c : utm->configurations){
+        c->sd = utm->sdify(c);
+        c->sdSig = utm->sdifySig(c);
+        c->sdWS = utm->sdifyWS(c);
+        c->sdMV = utm->sdifyMV(c);
+        c->sdNC = utm->sdifyNC(c);
+        c->sdNum = utm->sdint(c);
+
+        utm->standardDesctription.push_back(c->sd);
+        utm->fullSD += c->sd;
+        utm->sdSignatures.push_back(c->sdSig);
     }
     vector<string> colors = generateColorSpectrum(utm->configurations, utm->stateSymbolToConfig);
     confNum = 0;
@@ -253,12 +259,23 @@ void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWid
         ss << "Turing Machine Genome: " << stateSymbolToConfig.size()-1 << " genes, " << fullSD.size() << " total nucleotides!";
         drawShapeWithText(*window, ss.str(), halfWidth, wHeight * (genomeMult * 0.5), wWidth, wHeight * genomeMult);
         for (Configuration* c : configurations){
-            double realP = getIterPercent() > 0.54 ? 1.0 : getIterPercent() / 0.54;
+            double realP = getIterPercent() < 0.5 ? 0.0 : (getIterPercent() - 0.5) / 0.5;
             
             drawShapeWithText(*window, "Q" + to_string(1 + c->stateIndex), (c->confIndex + 0.5) * widthPerConfig, wHeight * (1.5 * genomeMult), widthPerConfig, wHeight * genomeMult, true, c->color);
             if (c == currentConfig){
-                unsigned oldX = widthPerConfig/2 + (lastConfig->confIndex * widthPerConfig);
-                unsigned newX = widthPerConfig/2 + (c->confIndex * widthPerConfig);
+                unsigned oldX = widthPerConfig/2 + (c->confIndex * widthPerConfig);
+                Symbol nextSym;
+                if (c->direction == RIGHT){
+                    nextSym = tape->readAt(tape->getHead() + 1);
+                }
+                else if (c->direction == LEFT){
+                    nextSym = tape->readAt(tape->getHead() -1);
+                }
+                else{
+                    nextSym = tape->read();
+                }
+                Configuration* rrr = (*stateSymbolToConfig.at(c->nextState)).at(nextSym);
+                unsigned newX = widthPerConfig/2 + (rrr->confIndex * widthPerConfig);
                 unsigned x;
                 if (newX > oldX){
                     x = oldX + (realP * (newX - oldX));
@@ -267,7 +284,8 @@ void TuringMachine::drawGenome(Window* window, unsigned halfWidth, unsigned wWid
                     x = oldX - (realP * (oldX - newX));
                 }
                 string drawee = any_cast<bool>(window->params.at("protein_mode")) ? c->sdSig : c->signature;
-                drawShapeAroundText(*window, drawee, x, wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
+                drawShapeAroundText(*window, " | ", x, wHeight * (2.5 * genomeMult), wHeight * genomeMult, c->color, 2);
+                drawShapeAroundText(*window, drawee, x, wHeight * (3.5 * genomeMult), wHeight * genomeMult, c->color, 2);
             }   
         }
     }
